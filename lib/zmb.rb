@@ -1,9 +1,37 @@
+require 'socket'
+
+require 'lib/zmb/plugin'
+require 'lib/zmb/settings'
+
 class Zmb
-  require 'socket'
+  attr_accessor :plugins, :plugin_sources
   
-  def initialize
-    @plugins = {'core/zmb' => self}
+  def initialize(config_dir)
+    @plugin_manager = PluginManager.new
+    @settings = Settings.new(config_dir)
+    
+    @instances = {'core/zmb' => self}
     @sockets = Hash.new
+    
+    @settings.get('core/zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
+    @settings.get('core/zmb', 'plugin_instances', []).each{|instance| load instance}
+  end
+  
+  def load(key)
+    return true if @instances.has_key?(key)
+    
+    if p = @settings.get(key, 'plugin') then
+      object = @plugin_manager.plugin(p)
+      @instances[key] = object.new(self, @settings.setting(key))
+      true
+    else
+      false
+    end
+  end
+  
+  def unload(key)
+    return false if not @instances.has_key?(key)
+    socket_delete @instances.delete(key)
   end
   
   def run
