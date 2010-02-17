@@ -18,7 +18,11 @@ class Settings
   end
   
   def setting(key)
-    JSON.parse(File.read(setting_path(key)))
+    begin
+      JSON.parse(File.read(setting_path(key)))
+    rescue
+      {}
+    end
   end
   
   def get(object, name, default=nil)

@@ -2,6 +2,7 @@ require 'socket'
 
 require 'lib/zmb/plugin'
 require 'lib/zmb/settings'
+require 'lib/zmb/event'
 
 class Zmb
   attr_accessor :plugins, :plugin_sources
@@ -75,5 +76,26 @@ class Zmb
         end
       end
     end
+  end
+  
+  def post(signal, *args)
+    results = Array.new
+    
+    @instances.select{|name, instance| instance.respond_to?(signal)}.each do |name, instance|
+      results << instance.send(signal, *args) rescue nil
+    end
+    
+    results
+  end
+  
+  def post!(signal, *args) # This will exclude the plugin manager
+    @instances.select{|name, instance| instance.respond_to?(signal) and instance != self}.each do |name, instance|
+      instance.send(signal, *args) rescue nil
+    end
+  end
+  
+  def event(sender, e)
+    post! :pre_event, self, e
+    post! :event, self, e
   end
 end
