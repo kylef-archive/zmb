@@ -1,5 +1,7 @@
 require 'socket'
 
+require 'lib/zmb/timer'
+
 class Event
   attr_accessor :sender, :command, :args, :name, :userhost, :message
   
@@ -67,7 +69,11 @@ class IrcConnection
     @throttle = 10
     @throttle = settings['throttle'] if settings.has_key?('throttle')
     
-    connect
+    sender.timer_add(Timer.new(self, :connect, 1.0))
+  end
+  
+  def socket=(value)
+    @socket = value
   end
   
   def to_json(*a)
@@ -108,6 +114,11 @@ class IrcConnection
     }
   end
   
+  def unloaded
+    write "Quit :ZMB"
+    @socket.close if @socket
+  end
+  
   def nick=(value)
     @nick = value
     write "NICK #{@nick}"
@@ -127,7 +138,7 @@ class IrcConnection
   
   def disconnected(sender, socket)
     @socket = nil
-    connect
+    sender.timer_add(Timer.new(self, :connect, @throttle))
   end
   
   def perform
@@ -159,12 +170,14 @@ class IrcConnection
     while line != nil do
       e = Event.new(self, line)
       
-      
       # Catch some events
       case e.command
         when 'ping' then write "PONG #{e.args[1..-1]}"
         when '001' then @channels.each{ |channel| write "JOIN #{channel}" }
         when 'nick' then tmp, @nick = e.args.split(' :', 2)
+        when '433' then
+          @nick="#{@nick}_"
+          write "NICK #{@nick}"
       end
       
       @delegate.event(self, e)

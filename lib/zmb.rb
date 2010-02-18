@@ -15,6 +15,11 @@ class Zmb
     @instances = {'core/zmb' => self}
     @sockets = Hash.new
     
+    @minimum_timeout = 0.5 # Half a second
+    @maximum_timeout = 60.0 # Sixty seconds
+    @timers = Array.new
+    timer_add(Timer.new(self, :save, 120.0, true))
+    
     @settings.get('core/zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
     @settings.get('core/zmb', 'plugin_instances', []).each{|instance| load instance}
   end
@@ -43,18 +48,20 @@ class Zmb
     end
   end
   
-  def unload(key)
+  def unload(key, tell=true)
     return false if not @instances.has_key?(key)
     instance = @instances.delete(key)
     @settings.save key, instance
     socket_delete instance
+    instance.unloaded if instance.respond_to?('unloaded') and tell
     post! :plugin_unloaded, key, instance
   end
   
   def run
     begin
       while 1
-        socket_select(timeout)
+        socket_run(timeout)
+        timer_run
       end
     rescue Interrupt
       return
@@ -62,7 +69,13 @@ class Zmb
   end
   
   def timeout
-    60.0
+    if timer_timeout > @maximum_timeout
+      @maximum_timeout
+    elsif timer_timeout > @minimum_timeout
+      timer_timeout
+    else
+      @minimum_timeout
+    end
   end
   
   def socket_add(delegate, socket)
@@ -70,8 +83,8 @@ class Zmb
   end
   
   def socket_delete(item)
-    if @sockets.include?(item) then
-      @sockets.select{|sock, delegate| delegate == item}.each{|key, value| @sockets.delete(key)}
+    if @sockets.has_value?(item) then
+      @sockets.select{ |sock, delegate| delegate == item }.each{ |sock, delegate| @sockets.delete(sock) }
     end
     
     if @sockets.has_key?(item) then
@@ -79,7 +92,7 @@ class Zmb
     end
   end
   
-  def socket_select(timeout)
+  def socket_run(timeout)
     result = select(@sockets.keys, nil, nil, timeout)
     
     if result != nil then
@@ -92,6 +105,23 @@ class Zmb
         end
       end
     end
+  end
+  
+  def timer_add(timer)
+    @timers << timer
+  end
+  
+  def timer_del(search)
+    @timers.each{ |timer| @timers.delete(timer) if timer.delegate == search }
+    @timers.delete(search)
+  end
+  
+  def timer_timeout # When will the next timer run?
+    @timers.map{|timer| timer.timeout}.sort.fetch(0, @maximum_timeout)
+  end
+  
+  def timer_run
+    @timers.select{|timer| timer.timeout <= 0.0 and timer.respond_to?("fire") }.each{|timer| timer.fire(self)}
   end
   
   def post(signal, *args)
@@ -133,9 +163,16 @@ class Zmb
   
   def reload_command(e, instance)
     if @instances.has_key?(instance) then
-      unload(instance)
+      sockets = Array.new
+      @sockets.each{ |sock,delegate| sockets << sock if delegate == @instances[instance] }
+      
+      unload(instance, false)
       @plugin_manager.reload_plugin(@settings.get(instance, 'plugin'))
       load(instance)
+      
+      sockets.each{ |socket| @sockets[socket] = @instances[instance] }
+      @instances[instance].socket = sockets[0] if sockets.size == 1 and @instances[instance].respond_to?('socket=')
+      
       "#{instance} reloaded"
     else
       "No such instance #{instance}"

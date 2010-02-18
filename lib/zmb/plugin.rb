@@ -18,8 +18,12 @@ class PluginManager
   
   def load_plugin_source(file)
     definition = instance_eval(File.read(file))
-    definition.definitition_file = File.expand_path(file)
-    @plugins << definition
+    begin
+      definition.definitition_file = File.expand_path(file)
+      @plugins << definition
+    rescue
+      nil
+    end
   end
   
   def add_plugin_source(directory)
