@@ -98,6 +98,16 @@ class IrcConnection
     }
   end
   
+  def commands
+    require 'lib/zmb/commands'
+    {
+      'join' => PermCommand.new('admin', self, :join_command),
+      'part' => PermCommand.new('admin', self, :part_command),
+      'raw' => PermCommand.new('admin', self, :raw_command),
+      'tell' => PermCommand.new('admin', self, :tell_command, 2),
+    }
+  end
+  
   def nick=(value)
     @nick = value
     write "NICK #{@nick}"
@@ -160,6 +170,25 @@ class IrcConnection
       @delegate.event(self, e)
       line, @buffer = @buffer.split("\r\n", 2)
     end
+  end
+  
+  def join_command(e, channel)
+    join channel
+    "#{channel} joined"
+  end
+  
+  def part_command(e, channel)
+    part channel
+    "#{channel} left"
+  end
+  
+  def raw_command(e, line)
+    write line
+  end
+  
+  def tell_command(e, to, message)
+    message = message.split("\n") if not message.respond_to?('each')
+    message.each{ |m| write "PRIVMSG #{to} :#{m}" }
   end
 end
 
