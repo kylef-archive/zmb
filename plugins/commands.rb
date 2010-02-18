@@ -20,6 +20,12 @@ class Commands
     { 'cc' => @cc, 'plugin' => 'commands' }.to_json(*a)
   end
   
+  def self.wizard
+    {
+      'cc' => { 'help' => 'The control command to use for commands', 'default' => '!' },
+    }
+  end
+  
   def event(sender, e)
     return if not e.message?
     

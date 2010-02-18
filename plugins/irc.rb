@@ -40,7 +40,8 @@ class Event
   
   def reply(m)
     if message? then
-      @sender.write "PRIVMSG #{channel} :#{m}"
+      m = m.split("\n") if not m.respond_to?('each')
+      m.each{ |mess| @sender.write "PRIVMSG #{channel} :#{mess}" }
     else
       @sender.write m
     end
@@ -54,7 +55,7 @@ class IrcConnection
     @delegate = sender
     
     @host = settings['host'] if settings.has_key?('host')
-    @port = settings['port'] if settings.has_key?('port')
+    @port = Integer(settings['port']) if settings.has_key?('port')
     
     @channels = settings['channels'] if settings.has_key?('channels')
     
@@ -84,6 +85,17 @@ class IrcConnection
       'throttle' => @throttle,
       'plugin' => 'irc',
     }.to_json(*a)
+  end
+  
+  def self.wizard
+    {
+      'host' => { 'help' => 'What host would you like to connect to?', 'default' => 'localhost' },
+      'port' => { 'help' => 'What port is this server listening on?', 'default' => 6667 },
+      'nick' => { 'help' => 'The nickname you wish to use for this irc server.', 'default' => 'zmb' },
+      'name' => { 'help' => nil, 'default' => 'zmb' },
+      'realname' => { 'help' => nil, 'default' => 'zmb' },
+      'password' => { 'help' => 'If the ircd requires a password, enter this here.', 'default' => nil },
+    }
   end
   
   def nick=(value)

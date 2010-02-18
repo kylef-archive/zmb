@@ -26,6 +26,10 @@ class Zmb
     }.to_json(*a)
   end
   
+  def save
+    @instances.each{ |k,v| @settings.save(k, v) }
+  end
+  
   def load(key)
     return true if @instances.has_key?(key)
     
@@ -117,7 +121,13 @@ class Zmb
       'unload' => PermCommand.new('admin', self, :unload_command),
       'load' => PermCommand.new('admin', self, :load_command),
       'save' => PermCommand.new('admin', self, :save_command, 0),
-      'loaded' => Command.new(self, :loaded_command, 0),
+      'loaded' => PermCommand.new('admin', self, :loaded_command, 0),
+      'wizard' => PermCommand.new('admin', self, :wizard_command, 2),
+      'set' => PermCommand.new('admin', self, :set_command, 3),
+      'get' => PermCommand.new('admin', self, :get_command, 2),
+      'clone' => PermCommand.new('admin', self, :clone_command, 2),
+      'reset' => PermCommand.new('admin', self, :reset_command),
+      'addsource' => PermCommand.new('admin', self, :addsource_command),
     }
   end
   
@@ -150,11 +160,63 @@ class Zmb
   end
   
   def save_command(e)
-    @instances.each{ |k,v| @settings.save(k, v) }
+    save
     'settings saved'
   end
   
   def loaded_command(e)
     @instances.keys.join(', ')
+  end
+  
+  def wizard_command(e, plugin, instance)
+    object = @plugin_manager.plugin plugin
+    
+    return "plugin not found" if not object
+    return "no wizard availible" if not object.respond_to? 'wizard'
+    
+    settings = Hash.new
+    settings['plugin'] = plugin
+    d = object.wizard
+    d.each{ |k,v| settings[k] = v['default'] if v.has_key?('default') and v['default'] }
+    @settings.save instance, settings
+    
+    values = d.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" }
+    
+    "Instance saved, please use the set command to override the default configuration for this instance.\n"+
+    values.join("\n")
+  end
+  
+  def set_command(e, instance, key, value)
+    settings = @settings.setting(instance)
+    settings[key] = value
+    @settings.save(instance, settings)
+    "#{key} set to #{value} for #{instance}"
+  end
+  
+  def get_command(e, instance, key)
+    if value = @settings.get(instance, key) then
+      "#{key} is #{value} for #{instance}"
+    else
+      "#{instance} or #{instance}/#{key} not found."
+    end
+  end
+  
+  def clone_command(e, instance, new_instance)
+    if (settings = @settings.setting(instance)) != {} then
+      @settings.save(new_instance, settings)
+      "The settings for #{instance} were copied to #{new_instance}"
+    else
+      "No settings for #{instance}"
+    end
+  end
+  
+  def reset_command(e, instance)
+    @settings.save(instance, {})
+    "Settings for #{instance} have been deleted."
+  end
+  
+  def addsource_command(e, source)
+    @plugin_manager.add_plugin_source source
+    "#{source} added to plugin manager"
   end
 end
