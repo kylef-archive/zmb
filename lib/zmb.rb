@@ -3,6 +3,7 @@ require 'socket'
 require 'lib/zmb/plugin'
 require 'lib/zmb/settings'
 require 'lib/zmb/event'
+require 'lib/zmb/commands'
 
 class Zmb
   attr_accessor :plugins, :plugin_sources
@@ -18,12 +19,20 @@ class Zmb
     @settings.get('core/zmb', 'plugin_instances', []).each{|instance| load instance}
   end
   
+  def to_json(*a)
+    {
+      'plugin_sources' => @plugin_manager.plugin_sources,
+      'plugin_instances' => @instances.keys,
+    }.to_json(*a)
+  end
+  
   def load(key)
     return true if @instances.has_key?(key)
     
     if p = @settings.get(key, 'plugin') then
       object = @plugin_manager.plugin(p)
       @instances[key] = object.new(self, @settings.setting(key))
+      post! :plugin_loaded, key, @instances[key]
       true
     else
       false
@@ -32,7 +41,10 @@ class Zmb
   
   def unload(key)
     return false if not @instances.has_key?(key)
-    socket_delete @instances.delete(key)
+    instance = @instances.delete(key)
+    @settings.save key, instance
+    socket_delete instance
+    post! :plugin_unloaded, key, instance
   end
   
   def run
@@ -97,5 +109,52 @@ class Zmb
   def event(sender, e)
     post! :pre_event, self, e
     post! :event, self, e
+  end
+  
+  def commands
+    {
+      'reload' => PermCommand.new('admin', self, :reload_command),
+      'unload' => PermCommand.new('admin', self, :unload_command),
+      'load' => PermCommand.new('admin', self, :load_command),
+      'save' => PermCommand.new('admin', self, :save_command, 0),
+      'loaded' => Command.new(self, :loaded_command, 0),
+    }
+  end
+  
+  def reload_command(e, instance)
+    if @instances.has_key?(instance) then
+      unload(instance)
+      @plugin_manager.reload_plugin(@settings.get(instance, 'plugin'))
+      load(instance)
+      "#{instance} reloaded"
+    else
+      "No such instance #{instance}"
+    end
+  end
+  
+  def unload_command(e, instance)
+    if @instances.has_key?(instance) then
+      unload(instance)
+      "#{instance} unloaded"
+    else
+      "No such instance #{instance}"
+    end
+  end
+  
+  def load_command(e, instance)
+    if not @instances.has_key?(instance) then
+      load(instance) ? "#{instance} loaded" : "#{instance} did not load correctly"
+    else
+      "Instance already #{instance}"
+    end
+  end
+  
+  def save_command(e)
+    @instances.each{ |k,v| @settings.save(k, v) }
+    'settings saved'
+  end
+  
+  def loaded_command(e)
+    @instances.keys.join(', ')
   end
 end

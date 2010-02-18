@@ -36,6 +36,8 @@ class Settings
   end
   
   def save(key, data)
-    #File.write(config_path(key), data.to_json)
+    f = File.open setting_path(key), 'w'
+    f.write data.to_json
+    f.close
   end
 end

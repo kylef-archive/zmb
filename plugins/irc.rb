@@ -1,14 +1,15 @@
 require 'socket'
 
 class Event
-  attr_accessor :sender, :command, :args, :userhost, :channel, :message
+  attr_accessor :sender, :command, :args, :name, :userhost, :message
   
   def initialize(sender, line)
     puts line
+    
     if line[0,1] == ':' then
       line = line[1..-1] # Remove the :
       hostname, command, args = line.split(' ', 3)
-      args = "#{hostname[1..-1]} #{args}"
+      args = "#{hostname} #{args}"
     else
       command, args = line.split(' ', 3)
     end
@@ -20,13 +21,17 @@ class Event
     case @command
       when 'privmsg'
         @userhost, @channel, @message = args.split(' ', 3)
-        @channel = hostname.split('!', 2)[0] if @channel == @sender.nick
+        @name, @userhost = @userhost.split('!', 2)
         @message = @message[1..-1]
     end
   end
   
-  def userhost
-    @userhost.split('!', 2)[1]
+  def private?
+    @channel == @sender.nick
+  end
+  
+  def channel
+    private? ? @name : @channel
   end
   
   def message?
@@ -35,7 +40,7 @@ class Event
   
   def reply(m)
     if message? then
-      @sender.write "PRIVMSG #{@channel} :#{m}"
+      @sender.write "PRIVMSG #{channel} :#{m}"
     else
       @sender.write m
     end
@@ -64,7 +69,7 @@ class IrcConnection
     connect
   end
   
-  def settings
+  def to_json(*a)
     {
       'host' => @host,
       'port' => @port,
@@ -77,7 +82,8 @@ class IrcConnection
       'password' => @password,
       
       'throttle' => @throttle,
-    }
+      'plugin' => 'irc',
+    }.to_json(*a)
   end
   
   def nick=(value)
@@ -105,9 +111,7 @@ class IrcConnection
   def perform
     write "PASS #{@password}" if @password
     write "NICK #{@nick}" if @nick
-    write "USER #{@name} 0 0 :#{realname}" if @name and @realname
-    
-    @channels.each{|channel| write "JOIN #{channel}"}
+    write "USER #{@name} 0 0 :#{@realname}" if @name and @realname
   end
   
   def write(line)
@@ -133,8 +137,12 @@ class IrcConnection
     while line != nil do
       e = Event.new(self, line)
       
-      if e.command == 'ping' then
-        write "PONG #{e.args[1..-1]}"
+      
+      # Catch some events
+      case e.command
+        when 'ping' then write "PONG #{e.args[1..-1]}"
+        when '001' then @channels.each{ |channel| write "JOIN #{channel}" }
+        when 'nick' then tmp, @nick = e.args.split(' :', 2)
       end
       
       @delegate.event(self, e)

@@ -1,4 +1,6 @@
 class PluginManager
+  attr_accessor :plugin_sources
+  
   def initialize
     @plugins = Array.new
     @plugin_sources = Array.new
