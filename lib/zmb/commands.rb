@@ -16,9 +16,8 @@ class Command
     if @commands == 0 then
       args = Array.new
     elsif args.size > @commands
-      # Take one under amount of commands
-      a = args[0..@commands-2]
-      a << args[commands-1..-1].join(' ')
+      a = args.first @commands-1 # Take one under amount of commands
+      a << args[@commands-1..-1].join(' ')
       args = a
     end
     
@@ -46,6 +45,16 @@ class PermCommand < Command
   
   def run(e, args)
     if e.respond_to?('user') and e.user.permission?(@perm) then
+      super(e, args)
+    else
+      'permission denied'
+    end
+  end
+end
+
+class AuthCommand < Command
+  def run(e, args)
+    if e.respond_to?('user') and e.user.authenticated? then
       super(e, args)
     else
       'permission denied'

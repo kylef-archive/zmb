@@ -85,7 +85,7 @@ class Commands
   def commands
     {
       'help' => Command.new(self, :help),
-      'cc' => Command.new(self, :control_command),
+      'cc' => PermCommand.new('admin', self, :control_command),
     }
   end
   

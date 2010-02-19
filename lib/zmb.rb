@@ -4,9 +4,10 @@ require 'lib/zmb/plugin'
 require 'lib/zmb/settings'
 require 'lib/zmb/event'
 require 'lib/zmb/commands'
+require 'lib/zmb/timer'
 
 class Zmb
-  attr_accessor :plugins, :plugin_sources
+  attr_accessor :instances
   
   def initialize(config_dir)
     @plugin_manager = PluginManager.new
@@ -152,7 +153,7 @@ class Zmb
       'load' => PermCommand.new('admin', self, :load_command),
       'save' => PermCommand.new('admin', self, :save_command, 0),
       'loaded' => PermCommand.new('admin', self, :loaded_command, 0),
-      'wizard' => PermCommand.new('admin', self, :wizard_command, 2),
+      'setup' => PermCommand.new('admin', self, :setup_command, 2),
       'set' => PermCommand.new('admin', self, :set_command, 3),
       'get' => PermCommand.new('admin', self, :get_command, 2),
       'clone' => PermCommand.new('admin', self, :clone_command, 2),
@@ -205,22 +206,25 @@ class Zmb
     @instances.keys.join(', ')
   end
   
-  def wizard_command(e, plugin, instance)
+  def setup_command(e, plugin, instance)
     object = @plugin_manager.plugin plugin
     
     return "plugin not found" if not object
-    return "no wizard availible" if not object.respond_to? 'wizard'
     
     settings = Hash.new
     settings['plugin'] = plugin
-    d = object.wizard
-    d.each{ |k,v| settings[k] = v['default'] if v.has_key?('default') and v['default'] }
+    
+    result = ["Instance saved, please use the set command to override the default configuration for this instance."]
+    
+    if object.respond_to? 'wizard' then
+      d = object.wizard
+      d.each{ |k,v| settings[k] = v['default'] if v.has_key?('default') and v['default'] }
+      result += d.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" }
+    end
+    
     @settings.save instance, settings
     
-    values = d.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" }
-    
-    "Instance saved, please use the set command to override the default configuration for this instance.\n"+
-    values.join("\n")
+    result.join("\n")
   end
   
   def set_command(e, instance, key, value)

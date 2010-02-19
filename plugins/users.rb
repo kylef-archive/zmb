@@ -46,7 +46,7 @@ class User
   end
   
   def admin?
-    @permissions.include?("admin")
+    @permissions.include?("owner") or @permissions.include?("admin")
   end
   
   def permission?(permission)
@@ -106,18 +106,18 @@ class Users
     require 'lib/zmb/commands'
     {
       'meet' => Command.new(self, :meet, 1, 'Meet a new user'),
-      'forget' => Command.new(self, :forget, 0, "Forget about a user"),
+      'forget' => AuthCommand.new(self, :forget, 0, "Forget about a user"),
       'permit' => PermCommand.new('admin', self, :permit, 2),
       'deny' => PermCommand.new('admin', self, :deny, 2),
-      'perms' => Command.new(self, :perms, 1, 'List all permissions a user has.'),
+      'perms' => AuthCommand.new(self, :perms, 1, 'List all permissions a user has.'),
       'merge' => PermCommand.new('admin', self, :merge, 1, 'Merge two users together'),
-      'password' => Command.new(self, :password, 2, 'Set the password for your account'),
+      'password' => AuthCommand.new(self, :password, 1, 'Set the password for your account'),
       'login' => Command.new(self, :login, 2, 'Add your current host to the username and password provided.'),
-      'logout' => Command.new(self, :logout, 0, 'Remove your current host from your account.'),
+      'logout' => AuthCommand.new(self, :logout, 0, 'Remove your current host from your account.'),
       'whoami' => Command.new(self, :whoami, 0, 'Who are you logged in as?'),
-      'userhosts' => Command.new(self, :userhosts, 0, 'List all the hosts associated with your account'),
-      'adduserhost' => Command.new(self, :adduserhost, 1, 'Add a host to your account'),
-      'deluserhost' => Command.new(self, :deluserhost, 1, 'Remove a host to your account'),
+      'userhosts' => AuthCommand.new(self, :userhosts, 0, 'List all the hosts associated with your account'),
+      'adduserhost' => AuthCommand.new(self, :adduserhost, 1, 'Add a host to your account'),
+      'deluserhost' => AuthCommand.new(self, :deluserhost, 1, 'Remove a host to your account'),
       'names' => Command.new(self, :names, 1, 'List all the users'),
       'seen' => Command.new(self, :seen, 1, 'When was a user last seen'),
       'sudo' => PermCommand.new('admin', self, :sudo, 2, 'Execute a command as another user.'),
@@ -151,11 +151,7 @@ class Users
   end
   
   def forget(e)
-    if e.user and e.user.authenticated? then
-      "user #{@users.delete(e.user).username} deleted"
-    else
-      "user not found"
-    end
+    "user #{@e.users.delete(e.user).username} deleted"
   end
   
   def permit(e, username, permission)
@@ -177,18 +173,7 @@ class Users
   end
   
   def perms(e, username=nil)
-    user = e.user
-    user = user!(username) if e.user.admin? and username
-    
-    if user and user.authenticated? then
-      if user.permissions.empty? then
-        "#{user.username} has no permissions"
-      else
-        user.permissions.join(', ')
-      end
-    else
-      'user not found'
-    end
+    e.user.permissions.empty? ? "#{e.user.username} has no permissions" ? e.user.permissions.join(', ')
   end
   
   def merge(e, username, other_username)
@@ -205,12 +190,8 @@ class Users
   end
   
   def password(e, password)
-    if e.user and e.user.authenticated? then
-      e.user.password = password
-      "#{e.user.username} password has been set to #{password}"
-    else
-      'permission denied'
-    end
+    e.user.password = password
+    "#{e.user.username} password has been set to #{password}"
   end
   
   def login(e, username, password)
@@ -227,12 +208,8 @@ class Users
   end
   
   def logout(e)
-    if e.user.authenticated? then
-      e.user.hosts.delete(e.userhost)
-      "userhost #{e.hostname} removed from your account."
-    else
-      'not logged in'
-    end
+    e.user.hosts.delete(e.userhost)
+    "userhost #{e.hostname} removed from your account."
   end
   
   def whoami(e)
@@ -240,31 +217,19 @@ class Users
   end
   
   def userhosts(e)
-    if e.user and e.user.authenticated? and not e.user.userhosts.empty? then
-      e.user.userhosts.join(', ')
-    else
-      "#{e.user.username} has no userhosts"
-    end
+    e.user.userhosts.empty? ?  "#{e.user.username} has no userhosts" : e.user.userhosts.join(', ')
   end
   
   def adduserhost(e, userhost)
-    if e.user and e.user.authenticated? then
-      user.userhosts << userhost
-      "#{userhost} added to #{e.user.username}"
-    else
-      'permission denied'
-    end
+    e.user.userhosts << userhost
+    "#{userhost} added to #{e.user.username}"
   end
   
-  def deluserhost(e, hostname)
-    if e.user and e.user.authenticated? then
-      if e.user.userhosts.delete(userhost) then
-        "#{userhost} deleted from #{e.user.username}"
-      else
-        "#{e.user.username} doesn't have #{userhost}"
-      end
+  def deluserhost(e, userhost)
+    if e.user.userhosts.delete(userhost) then
+      "#{userhost} deleted from #{e.user.username}"
     else
-      'permission denied'
+      "#{e.user.username} doesn't have #{userhost}"
     end
   end
   
@@ -303,7 +268,7 @@ class Users
     if user = user!(search) then
       new_event = e.clone
       new_event.user = user
-      new_event.message = command
+      new_event.message = @delegate.instances['commands'].cc + command
       @delegate.event(self, new_event)
       nil
     else

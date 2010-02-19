@@ -192,16 +192,18 @@ class IrcConnection
   
   def part_command(e, channel)
     part channel
-    "#{channel} left"
+    "left #{channel}"
   end
   
   def raw_command(e, line)
+    puts line
     write line
   end
   
   def tell_command(e, to, message)
     message = message.split("\n") if not message.respond_to?('each')
     message.each{ |m| write "PRIVMSG #{to} :#{m}" }
+    nil
   end
 end
 
