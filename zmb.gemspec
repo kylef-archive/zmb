@@ -32,11 +32,14 @@ Gem::Specification.new do |s|
      "lib/zmb/plugin.rb",
      "lib/zmb/settings.rb",
      "lib/zmb/timer.rb",
+     "plugins/bank.rb",
      "plugins/commands.rb",
      "plugins/irc.rb",
+     "plugins/quote.rb",
      "plugins/users.rb",
      "test/helper.rb",
-     "test/test_zmb.rb"
+     "test/test_zmb.rb",
+     "zmb.gemspec"
   ]
   s.homepage = %q{http://github.com/kylef/zmb}
   s.rdoc_options = ["--charset=UTF-8"]
