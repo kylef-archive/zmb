@@ -20,11 +20,11 @@ class User
     user
   end
   
-  def initialize(username=nil, password=nil, host=nil)
+  def initialize(username=nil, password=nil, userhost=nil)
     @username = username
     @password = Digest::SHA1.hexdigest(password) if password
     @userhosts = Array.new
-    @hosts << host if host
+    @userhosts << userhost if userhost
     @permissions = Array.new
   end
   
@@ -102,15 +102,21 @@ class Users
     e.user.seen = Time.now if e.user.respond_to?('seen')
   end
   
+  def create_user(username, password=nil, userhost=nil)
+    user = User.new(username, password, userhost)
+    @users << user
+    user
+  end
+  
   def commands
-    require 'lib/zmb/commands'
+    require 'zmb/commands'
     {
       'meet' => Command.new(self, :meet, 1, 'Meet a new user'),
       'forget' => AuthCommand.new(self, :forget, 0, "Forget about a user"),
       'permit' => PermCommand.new('admin', self, :permit, 2),
       'deny' => PermCommand.new('admin', self, :deny, 2),
       'perms' => AuthCommand.new(self, :perms, 1, 'List all permissions a user has.'),
-      'merge' => PermCommand.new('admin', self, :merge, 1, 'Merge two users together'),
+      'merge' => PermCommand.new('admin', self, :merge, 2, 'Merge two users together'),
       'password' => AuthCommand.new(self, :password, 1, 'Set the password for your account'),
       'login' => Command.new(self, :login, 2, 'Add your current host to the username and password provided.'),
       'logout' => AuthCommand.new(self, :logout, 0, 'Remove your current host from your account.'),
@@ -126,25 +132,15 @@ class Users
   
   def meet(e, username=nil)
     if e.user.admin? and username then
-      if user!(username) then
-        "#{username} already exists"
-      else
-        user = User.new(username)
-        @users << user
-        "Hello #{username}"
-      end
+      return "#{username} already exists" if user!(username)
+      user = create_user(username)
+      "Hello #{username}"
     elsif not e.user.authenticated? then
-      if user!(e.sender) then
-        "#{e.sender} already exists"
-      else
-        if e.respond_to?('userhost') and e.respond_to?('user') then
-          user = User.new(e.name)
-          user.userhosts << e.userhost
-          @users << user
-        end
-        
-        "Hello #{user.username}"
+      return "#{e.sender} already exists" if user!(e.sender)
+      if e.respond_to?('userhost') and e.respond_to?('user') then
+        user = create_user(e.name, nil, e.userhost)
       end
+      "Hello #{user.username}"
     else
       "You already have an account #{e.user.username}"
     end
@@ -173,7 +169,7 @@ class Users
   end
   
   def perms(e, username=nil)
-    e.user.permissions.empty? ? "#{e.user.username} has no permissions" ? e.user.permissions.join(', ')
+    e.user.permissions.empty? ? "#{e.user.username} has no permissions" : e.user.permissions.join(', ')
   end
   
   def merge(e, username, other_username)

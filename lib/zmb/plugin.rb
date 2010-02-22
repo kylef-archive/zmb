@@ -17,11 +17,11 @@ class PluginManager
   end
   
   def load_plugin_source(file)
-    definition = instance_eval(File.read(file))
     begin
+      definition = instance_eval(File.read(file))
       definition.definitition_file = File.expand_path(file)
       @plugins << definition
-    rescue
+    rescue Exception
       nil
     end
   end
@@ -54,7 +54,9 @@ class PluginManager
     
     if plugin then
       @plugins.delete(plugin)
-      load_plugin_source plugin.definitition_file
+      reloaded = load_plugin_source plugin.definitition_file
+      @plugins << plugin if not reloaded
+      reloaded
     end
   end
 end

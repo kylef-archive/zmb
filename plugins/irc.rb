@@ -57,8 +57,13 @@ class IrcConnection
     @delegate = sender
     
     @host = settings['host'] if settings.has_key?('host')
-    @port = Integer(settings['port']) if settings.has_key?('port')
+    begin
+      @port = Integer(settings['port']) if settings.has_key?('port')
+    rescue Exception
+      @port = 6667
+    end
     
+    @channels = Array.new
     @channels = settings['channels'] if settings.has_key?('channels')
     
     @nick = settings['nick'] if settings.has_key?('nick')
@@ -69,7 +74,7 @@ class IrcConnection
     @throttle = 10
     @throttle = settings['throttle'] if settings.has_key?('throttle')
     
-    sender.timer_add(Timer.new(self, :connect, 1.0))
+    sender.timer_add(Timer.new(self, :connect, 1.0, false)) if sender.running
   end
   
   def socket=(value)
@@ -98,14 +103,14 @@ class IrcConnection
       'host' => { 'help' => 'What host would you like to connect to?', 'default' => 'localhost' },
       'port' => { 'help' => 'What port is this server listening on?', 'default' => 6667 },
       'nick' => { 'help' => 'The nickname you wish to use for this irc server.', 'default' => 'zmb' },
-      'name' => { 'help' => nil, 'default' => 'zmb' },
-      'realname' => { 'help' => nil, 'default' => 'zmb' },
+      'name' => { 'help' => 'Name', 'default' => 'zmb' },
+      'realname' => { 'help' => 'Realname', 'default' => 'zmb' },
       'password' => { 'help' => 'If the ircd requires a password, enter this here.', 'default' => nil },
     }
   end
   
   def commands
-    require 'lib/zmb/commands'
+    require 'zmb/commands'
     {
       'join' => PermCommand.new('admin', self, :join_command),
       'part' => PermCommand.new('admin', self, :part_command),
@@ -130,9 +135,11 @@ class IrcConnection
   
   def connect
     if @host and @port and not connected? then
-      @socket = TCPSocket.new(@host, @port)
-      @delegate.socket_add(self, @socket)
-      perform
+      Thread.new do
+        @socket = TCPSocket.new(@host, @port)
+        @delegate.socket_add(self, @socket)
+        perform
+      end
     end
   end
   
@@ -204,6 +211,10 @@ class IrcConnection
     message = message.split("\n") if not message.respond_to?('each')
     message.each{ |m| write "PRIVMSG #{to} :#{m}" }
     nil
+  end
+  
+  def running(sender)
+    connect
   end
 end
 

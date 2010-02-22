@@ -1,4 +1,9 @@
-require 'json'
+begin
+  require 'json'
+rescue LoadError
+  require 'rubygems'
+  gem 'json'
+end
 
 class Settings
   def initialize(directory)

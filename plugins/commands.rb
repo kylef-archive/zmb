@@ -1,4 +1,4 @@
-require 'lib/zmb/commands'
+require 'zmb/commands'
 
 class Commands
   attr_accessor :cmds, :cc

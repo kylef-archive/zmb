@@ -1,13 +1,13 @@
 require 'socket'
 
-require 'lib/zmb/plugin'
-require 'lib/zmb/settings'
-require 'lib/zmb/event'
-require 'lib/zmb/commands'
-require 'lib/zmb/timer'
+require 'zmb/plugin'
+require 'zmb/settings'
+require 'zmb/event'
+require 'zmb/commands'
+require 'zmb/timer'
 
 class Zmb
-  attr_accessor :instances
+  attr_accessor :instances, :plugin_manager, :settings
   
   def initialize(config_dir)
     @plugin_manager = PluginManager.new
@@ -19,10 +19,16 @@ class Zmb
     @minimum_timeout = 0.5 # Half a second
     @maximum_timeout = 60.0 # Sixty seconds
     @timers = Array.new
-    timer_add(Timer.new(self, :save, 120.0, true))
+    timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
     
     @settings.get('core/zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
     @settings.get('core/zmb', 'plugin_instances', []).each{|instance| load instance}
+    
+    @running = false
+  end
+  
+  def running?
+    @running
   end
   
   def to_json(*a)
@@ -41,6 +47,7 @@ class Zmb
     
     if p = @settings.get(key, 'plugin') then
       object = @plugin_manager.plugin(p)
+      return false if not object
       @instances[key] = object.new(self, @settings.setting(key))
       post! :plugin_loaded, key, @instances[key]
       true
@@ -54,13 +61,17 @@ class Zmb
     instance = @instances.delete(key)
     @settings.save key, instance
     socket_delete instance
+    timer_delete instance
     instance.unloaded if instance.respond_to?('unloaded') and tell
     post! :plugin_unloaded, key, instance
   end
   
   def run
+    post! :running, self
+    
+    @running = true
     begin
-      while 1
+      while @running
         socket_run(timeout)
         timer_run
       end
@@ -112,7 +123,7 @@ class Zmb
     @timers << timer
   end
   
-  def timer_del(search)
+  def timer_delete(search)
     @timers.each{ |timer| @timers.delete(timer) if timer.delegate == search }
     @timers.delete(search)
   end
@@ -141,6 +152,23 @@ class Zmb
     end
   end
   
+  def setup(plugin, instance)
+    object = @plugin_manager.plugin plugin
+    return false if not object
+    
+    settings = Hash.new
+    settings['plugin'] = plugin
+    
+    if object.respond_to? 'wizard' then
+      d = object.wizard
+      d.each{ |k,v| settings[k] = v['default'] if v.has_key?('default') and v['default'] }
+    end
+    
+    @settings.save instance, settings
+    
+    true
+  end
+  
   def event(sender, e)
     post! :pre_event, self, e
     post! :event, self, e
@@ -166,15 +194,14 @@ class Zmb
     if @instances.has_key?(instance) then
       sockets = Array.new
       @sockets.each{ |sock,delegate| sockets << sock if delegate == @instances[instance] }
-      
       unload(instance, false)
-      @plugin_manager.reload_plugin(@settings.get(instance, 'plugin'))
+      reloaded = @plugin_manager.reload_plugin(@settings.get(instance, 'plugin'))
       load(instance)
       
       sockets.each{ |socket| @sockets[socket] = @instances[instance] }
       @instances[instance].socket = sockets[0] if sockets.size == 1 and @instances[instance].respond_to?('socket=')
       
-      "#{instance} reloaded"
+      reloaded ? "#{instance} reloaded" : "#{instance} refreshed"
     else
       "No such instance #{instance}"
     end
@@ -207,24 +234,14 @@ class Zmb
   end
   
   def setup_command(e, plugin, instance)
-    object = @plugin_manager.plugin plugin
-    
-    return "plugin not found" if not object
-    
-    settings = Hash.new
-    settings['plugin'] = plugin
-    
-    result = ["Instance saved, please use the set command to override the default configuration for this instance."]
-    
-    if object.respond_to? 'wizard' then
-      d = object.wizard
-      d.each{ |k,v| settings[k] = v['default'] if v.has_key?('default') and v['default'] }
-      result += d.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" }
+    if setup(plugin, instance) then
+      object = @plugin_manager.plugin plugin
+      result = ["Instance saved, please use the set command to override the default configuration for this instance."]
+      result += d.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" } if object.respond_to? 'wizard'
+      result.join("\n")
+    else
+      "plugin not found"
     end
-    
-    @settings.save instance, settings
-    
-    result.join("\n")
   end
   
   def set_command(e, instance, key, value)
