@@ -1,0 +1,164 @@
+#!/usr/bin/ruby
+
+$:.unshift File.dirname(__FILE__) + "/../lib"
+
+require 'zmb'
+require 'optparse'
+
+def wizard(zmb, plugin)
+  STDOUT.flush
+  
+  puts "Would you like to add the #{plugin} plugin? (yes/no)"
+  use = gets.chomp
+  
+  if use == 'y' or use == 'yes' then
+    puts "What would you like to name this instance of #{plugin}?"
+    instance = gets.chomp
+    
+    zmb.setup(plugin, server)
+    settings = zmb.settings.setting(server)
+    
+    obj = zmb.plugin_manager.plugin plugin
+    if obj.respond_to?('wizard') then
+      obj.wizard.each do |key, value|
+        if value.has_key?('help') then
+          puts "#{value['help']} (default=#{value['default']})"
+          set = gets.chomp
+          settings[key] = set if set != ''
+        end
+      end
+    end
+      
+    zmb.settings.save(instance, settings)
+    zmb.load instance
+  end
+end
+
+options = {}
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: zmb [options]"
+  
+  options[:settings] = nil
+  opts.on('-s', '--settings SETTING', 'Use a settings folder') do |settings|
+    options[:settings] = settings
+  end
+  
+  options[:daemon] = false
+  opts.on('-d', '--daemon', 'Run ZMB') do
+    options[:daemon] = true
+  end
+  
+  options[:create] = false
+  opts.on('-c', '--create', 'Create a new ZMB settings file') do
+    options[:create] = true
+  end
+  
+  options[:shell] = false
+  opts.on('-b', '--shell', 'Create a commands shell') do
+    options[:shell] = true
+  end
+end
+
+optparse.parse!
+
+if not options[:settings] then
+  puts "Settings file required"
+  exit
+end
+
+zmb = Zmb.new(options[:settings])
+
+if options[:create] then
+  STDOUT.flush
+  
+  zmb.save
+  zmb.plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), "plugins")
+  
+  zmb.setup('commands', 'commands')
+  zmb.load 'commands'
+  zmb.setup('users', 'users')
+  zmb.load 'users'
+  
+  # Lets add a user
+  puts "Would you like to add a user (as a admin)? yes/no"
+  user = gets.chomp
+  
+  if user == 'yes' or user == 'y' then
+    puts "What username would you like to use?"
+    username = gets.chomp
+    
+    puts "What password would you like to use?"
+    password = gets.chomp
+    
+    puts "What userhost would you like to use? (This must be your userhost in IRC, perform a WHOIS on yourself). Example: ~zynox@isp.com"
+    userhost = gets.chomp
+    
+    zmb.instances['users'].create_user(username, password, userhost).permit('admin')
+  end
+  
+  wizard zmb, 'irc'
+  
+  zmb.save
+end
+
+if options[:shell] then
+  class AdminUser
+    attr_accessor :username, :userhosts
+    
+    def initialize
+      @username = 'admin'
+      @userhosts = []
+    end
+    
+    def admin?
+      true
+    end
+    
+    def permission?(perm)
+      true
+    end
+    
+    def authenticated?
+      true
+    end
+  end
+  
+  class Event
+    attr_accessor :message
+    
+    def initialize(message)
+      @message = message
+    end
+    
+    def message?
+      true
+    end
+    
+    def private?
+      true
+    end
+    
+    def user
+      AdminUser.new
+    end
+    
+    def reply(msg)
+      puts "> #{msg}"
+    end
+  end
+  
+  STDOUT.flush
+  
+  begin
+    while 1
+      zmb.event(nil, Event.new(gets.chomp))
+    end
+  rescue Interrupt
+    zmb.save
+  end
+end
+
+if options[:daemon] then
+  zmb.run
+end
