@@ -5,26 +5,40 @@ $:.unshift File.dirname(__FILE__) + "/../lib"
 require 'zmb'
 require 'optparse'
 
+def ask(question)
+  puts "#{question} (yes/no)"
+  answer = gets.chomp
+  answer == 'yes' or answer == 'y'
+end
+
+def get_value(question)
+  puts question
+  answer = gets.chomp
+  
+  return nil if answer == ''
+  answer
+end
+
 def wizard(zmb, plugin)
   STDOUT.flush
   
-  puts "Would you like to add the #{plugin} plugin? (yes/no)"
-  use = gets.chomp
-  
-  if use == 'y' or use == 'yes' then
-    puts "What would you like to name this instance of #{plugin}?"
-    instance = gets.chomp
+  if ask("Would you like to add the #{plugin} plugin?") then
+    instance = get_value("What would you like to name this instance of #{plugin}?")
     
-    zmb.setup(plugin, server)
-    settings = zmb.settings.setting(server)
+    if not instance then
+      puts "Must supply instance name"
+      return wizard zmb, plugin
+    end
+    
+    zmb.setup(plugin, instance)
+    settings = zmb.settings.setting(instance)
     
     obj = zmb.plugin_manager.plugin plugin
     if obj.respond_to?('wizard') then
       obj.wizard.each do |key, value|
         if value.has_key?('help') then
-          puts "#{value['help']} (default=#{value['default']})"
-          set = gets.chomp
-          settings[key] = set if set != ''
+          set = get_value("#{value['help']} (default=#{value['default']})")
+          settings[key] = set
         end
       end
     end
@@ -80,20 +94,10 @@ if options[:create] then
   zmb.setup('users', 'users')
   zmb.load 'users'
   
-  # Lets add a user
-  puts "Would you like to add a user (as a admin)? yes/no"
-  user = gets.chomp
-  
-  if user == 'yes' or user == 'y' then
-    puts "What username would you like to use?"
-    username = gets.chomp
-    
-    puts "What password would you like to use?"
-    password = gets.chomp
-    
-    puts "What userhost would you like to use? (This must be your userhost in IRC, perform a WHOIS on yourself). Example: ~zynox@isp.com"
-    userhost = gets.chomp
-    
+  if ask('Would you like to add a user (as a admin)?') then
+    username = get_value("What username would you like to use?")
+    password = get_value("What password would you like to use?")
+    userhost = get_value("What userhost would you like to use? (This must be your userhost in IRC, perform a WHOIS on yourself). Example: ~zynox@isp.com")
     zmb.instances['users'].create_user(username, password, userhost).permit('admin')
   end
   

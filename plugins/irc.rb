@@ -74,7 +74,7 @@ class IrcConnection
     @throttle = 10
     @throttle = settings['throttle'] if settings.has_key?('throttle')
     
-    sender.timer_add(Timer.new(self, :connect, 1.0, false)) if sender.running
+    sender.timer_add(Timer.new(self, :connect, 1.0, false)) if sender.running?
   end
   
   def socket=(value)

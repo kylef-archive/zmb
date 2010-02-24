@@ -1,5 +1,12 @@
 require 'socket'
 
+begin
+  require 'json'
+rescue LoadError
+  require 'rubygems'
+  gem 'json'
+end
+
 require 'zmb/plugin'
 require 'zmb/settings'
 require 'zmb/event'
