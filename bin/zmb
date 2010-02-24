@@ -5,6 +5,51 @@ $:.unshift File.dirname(__FILE__) + "/../lib"
 require 'zmb'
 require 'optparse'
 
+class AdminUser
+  attr_accessor :username, :userhosts
+  
+  def initialize
+    @username = 'admin'
+    @userhosts = []
+  end
+  
+  def admin?
+    true
+  end
+  
+  def permission?(perm)
+    true
+  end
+  
+  def authenticated?
+    true
+  end
+end
+
+class Event
+  attr_accessor :message
+  
+  def initialize(message)
+    @message = message
+  end
+  
+  def message?
+    true
+  end
+  
+  def private?
+    true
+  end
+  
+  def user
+    AdminUser.new
+  end
+  
+  def reply(msg)
+    puts "> #{msg}"
+  end
+end
+
 def ask(question)
   puts "#{question} (yes/no)"
   answer = gets.chomp
@@ -22,28 +67,33 @@ end
 def wizard(zmb, plugin)
   STDOUT.flush
   
-  if ask("Would you like to add the #{plugin} plugin?") then
-    instance = get_value("What would you like to name this instance of #{plugin}?")
+  if ask("Would you like to add the #{plugin.name} plugin? #{plugin.description}") then
+    if plugin.multi_instances? then
+      instance = get_value("What would you like to name this instance of #{plugin.name}?")
+    else
+      instance = plugin.name
+    end
     
     if not instance then
-      puts "Must supply instance name"
+      puts "Must supply instance name, if this plugin should only be loaded once such as commands or users then you can call it that."
       return wizard zmb, plugin
     end
     
-    zmb.setup(plugin, instance)
-    settings = zmb.settings.setting(instance)
-    
-    obj = zmb.plugin_manager.plugin plugin
+    zmb.setup(plugin.name, instance)
+    obj = zmb.plugin_manager.plugin plugin.name
     if obj.respond_to?('wizard') then
+      settings = zmb.settings.setting(instance)
+      settings['plugin'] = plugin.name
+      
       obj.wizard.each do |key, value|
         if value.has_key?('help') then
           set = get_value("#{value['help']} (default=#{value['default']})")
-          settings[key] = set
+          settings[key] = set if set
         end
       end
-    end
       
-    zmb.settings.save(instance, settings)
+      zmb.settings.save(instance, settings)
+    end
     zmb.load instance
   end
 end
@@ -72,13 +122,18 @@ optparse = OptionParser.new do |opts|
   opts.on('-b', '--shell', 'Create a commands shell') do
     options[:shell] = true
   end
+  
+  options[:command] = false
+  opts.on('-l', '--line LINE', 'Execute a command') do |line|
+    options[:command] = line
+  end
 end
 
 optparse.parse!
 
 if not options[:settings] then
-  puts "Settings file required"
-  exit
+  options[:settings] = File.expand_path('~/.zmb')
+  puts "No settings file specified, will use #{options[:settings]}"
 end
 
 zmb = Zmb.new(options[:settings])
@@ -87,71 +142,36 @@ if options[:create] then
   STDOUT.flush
   
   zmb.save
-  zmb.plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), "plugins")
   
-  zmb.setup('commands', 'commands')
-  zmb.load 'commands'
-  zmb.setup('users', 'users')
-  zmb.load 'users'
-  
-  if ask('Would you like to add a user (as a admin)?') then
-    username = get_value("What username would you like to use?")
-    password = get_value("What password would you like to use?")
-    userhost = get_value("What userhost would you like to use? (This must be your userhost in IRC, perform a WHOIS on yourself). Example: ~zynox@isp.com")
-    zmb.instances['users'].create_user(username, password, userhost).permit('admin')
+  while ask('Would you like to add additional plugin sources?')
+    source = get_value('Which path?')
+    if source and File.exists?(source) then
+      zmb.plugin_manager.add_plugin_source source
+      puts 'Source added'
+      zmb.save
+    else
+      puts 'Invalid source'
+    end
   end
   
-  wizard zmb, 'irc'
+  zmb.plugin_manager.plugins.reject{ |plugin| zmb.instances.has_key? plugin.name }.each{ |plugin| wizard(zmb, plugin) }
+  
+  if zmb.instances.has_key?('users') and ask('Would you like to add a admin user?') then
+    username = get_value('Username:')
+    password = get_value('Password:')
+    userhost = get_value('Userhost: (Leave blank for none)')
+    zmb.instances['users'].create_user(username, password, userhost).permit('admin')
+  end
   
   zmb.save
 end
 
+if options[:command]
+  zmb.event(nil, Event.new(options[:command]))
+  zmb.save
+end
+
 if options[:shell] then
-  class AdminUser
-    attr_accessor :username, :userhosts
-    
-    def initialize
-      @username = 'admin'
-      @userhosts = []
-    end
-    
-    def admin?
-      true
-    end
-    
-    def permission?(perm)
-      true
-    end
-    
-    def authenticated?
-      true
-    end
-  end
-  
-  class Event
-    attr_accessor :message
-    
-    def initialize(message)
-      @message = message
-    end
-    
-    def message?
-      true
-    end
-    
-    def private?
-      true
-    end
-    
-    def user
-      AdminUser.new
-    end
-    
-    def reply(msg)
-      puts "> #{msg}"
-    end
-  end
-  
   STDOUT.flush
   
   begin

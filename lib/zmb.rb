@@ -29,6 +29,11 @@ class Zmb
     timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
     
     @settings.get('core/zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
+    
+    if @plugin_manager.plugin_sources.empty? then
+      @plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins')
+    end
+    
     @settings.get('core/zmb', 'plugin_instances', []).each{|instance| load instance}
     
     @running = false
@@ -83,7 +88,7 @@ class Zmb
         timer_run
       end
     rescue Interrupt
-      return
+      save
     end
   end
   
@@ -177,8 +182,8 @@ class Zmb
   end
   
   def event(sender, e)
-    post! :pre_event, self, e
-    post! :event, self, e
+    post! :pre_event, sender, e
+    post! :event, sender, e
   end
   
   def commands

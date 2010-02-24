@@ -1,5 +1,5 @@
 class PluginManager
-  attr_accessor :plugin_sources
+  attr_accessor :plugin_sources, :plugins
   
   def initialize
     @plugins = Array.new
@@ -84,15 +84,27 @@ class PluginBuilder
   def object(value)
     @plugin.object = value
   end
+  
+  def multi_instances(value)
+    @plugin.multi_instances = value
+  end
 end
 
 
 class Plugin
-  attr_accessor :name, :description, :object, :definitition_file
+  attr_accessor :name, :description, :object, :definitition_file, :multi_instances
   
   def self.define(&block)
     builder = PluginBuilder.new(&block)
     builder.build
     builder.plugin
+  end
+  
+  def multi_instances?
+    if @multi_instances then
+      @multi_instances
+    else
+      false
+    end
   end
 end
