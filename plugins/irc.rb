@@ -3,7 +3,7 @@ require 'socket'
 require 'lib/zmb/timer'
 
 class Event
-  attr_accessor :sender, :command, :args, :name, :userhost, :message
+  attr_accessor :delegate, :command, :args, :name, :userhost, :message
   
   def initialize(sender, line)
     puts line
@@ -16,7 +16,7 @@ class Event
       command, args = line.split(' ', 3)
     end
     
-    @sender = sender
+    @delegate = sender
     @command = command.downcase
     @args = args
     
@@ -29,10 +29,10 @@ class Event
   end
   
   def private?
-    @channel == @sender.nick
+    @channel == @delegate.nick
   end
   
-  def channel
+  def sender
     private? ? @name : @channel
   end
   
@@ -43,9 +43,9 @@ class Event
   def reply(m)
     if message? then
       m = m.split("\n") if not m.respond_to?('each')
-      m.each{ |mess| @sender.write "PRIVMSG #{channel} :#{mess}" }
+      m.each{ |mess| @delegate.message(sender, mess) }
     else
-      @sender.write m
+      @delegate.write m
     end
   end
 end
@@ -74,7 +74,7 @@ class IrcConnection
     @throttle = 10
     @throttle = settings['throttle'] if settings.has_key?('throttle')
     
-    sender.timer_add(Timer.new(self, :connect, 1.0, false)) if sender.running?
+    sender.timer_add(Timer.new(self, :connect, 0.1, false)) if sender.running?
   end
   
   def socket=(value)
@@ -100,9 +100,9 @@ class IrcConnection
   
   def self.wizard
     {
-      'host' => { 'help' => 'What host would you like to connect to?', 'default' => 'localhost' },
-      'port' => { 'help' => 'What port is this server listening on?', 'default' => 6667 },
-      'nick' => { 'help' => 'The nickname you wish to use for this irc server.', 'default' => 'zmb' },
+      'host' => { 'help' => 'Hostname', 'default' => 'localhost' },
+      'port' => { 'help' => 'Port', 'default' => 6667 },
+      'nick' => { 'help' => 'Nickname', 'default' => 'zmb' },
       'name' => { 'help' => 'Name', 'default' => 'zmb' },
       'realname' => { 'help' => 'Realname', 'default' => 'zmb' },
       'password' => { 'help' => 'If the ircd requires a password, enter this here.', 'default' => nil },
@@ -158,6 +158,10 @@ class IrcConnection
     @socket.write line + "\r\n" if @socket
   end
   
+  def message(recipient, msg)
+    write "PRIVMSG #{recipient} :#{msg}"
+  end
+  
   def join(channel)
     @channels << channel if not @channels.include?(channel)
     write "JOIN #{channel}"
@@ -203,13 +207,13 @@ class IrcConnection
   end
   
   def raw_command(e, line)
-    puts line
     write line
+    nil
   end
   
   def tell_command(e, to, message)
-    message = message.split("\n") if not message.respond_to?('each')
-    message.each{ |m| write "PRIVMSG #{to} :#{m}" }
+    msg = msg.split("\n") if not msg.respond_to?('each')
+    msg.each{ |m| message(to, m) }
     nil
   end
   
@@ -220,6 +224,7 @@ end
 
 Plugin.define do
   name "irc"
-  description "irc connections"
+  description "A plugin which allows you to connect to irc servers."
   object IrcConnection
+  multi_instances true
 end
