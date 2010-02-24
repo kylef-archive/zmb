@@ -16,14 +16,13 @@ Gem::Specification.new do |s|
   s.executables = ["zmb"]
   s.extra_rdoc_files = [
     "LICENSE",
-     "README.markdown",
-     "README.rdoc"
+     "README.markdown"
   ]
   s.files = [
     ".document",
      ".gitignore",
      "LICENSE",
-     "README.rdoc",
+     "README.markdown",
      "Rakefile",
      "VERSION",
      "bin/zmb",
