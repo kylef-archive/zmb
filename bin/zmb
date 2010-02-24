@@ -166,7 +166,7 @@ if options[:create] then
   zmb.save
 end
 
-if options[:command]
+if options[:command] then
   zmb.event(nil, Event.new(options[:command]))
   zmb.save
 end

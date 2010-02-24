@@ -1,6 +1,6 @@
 require 'socket'
 
-require 'lib/zmb/timer'
+require 'zmb/timer'
 
 class Event
   attr_accessor :delegate, :command, :args, :name, :userhost, :message
