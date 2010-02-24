@@ -32,4 +32,8 @@ You can run zmb in a shell mode to test plugins without even connecting to any i
 - Users - User management
 - Bank - Points system
 
+### Support
+
+You can find support at #zmb @ efnet.
+
 For complete documentation please visit [Documentation](http://kylefuller.co.uk/projects/zmb/)

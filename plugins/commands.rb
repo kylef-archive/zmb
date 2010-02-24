@@ -113,7 +113,7 @@ class Commands
 end
 
 Plugin.define do
-  name "This plugin is needed for other plugins to function properly."
-  description nil
+  name "commands"
+  description "This plugin is needed for other plugins to function properly."
   object Commands
 end
