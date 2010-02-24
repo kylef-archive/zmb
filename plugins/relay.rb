@@ -4,6 +4,8 @@ class Relay
   def initialize(sender, settings={})
     @relays = settings['relays'] if settings.has_key?('relays')
     @relays = Hash.new if not @relays
+    
+    @delegate = sender
   end
   
   def to_json(*a)
@@ -11,7 +13,14 @@ class Relay
   end
   
   def event(sender, e)
-    # Does the sender have a relay?
+    if e.message? and @delegate.instances.has_value?(sender) then
+      relay = "#{@delegate.instances.invert[sender]}:#{e.sender}"
+      
+      if @relays.has_key?(relay) then
+        instance, recipient = @relays[relay].split(':', 2)
+        @delegate.instances[instance].message(recipient, "<#{e.name}> #{e.message}") if @delegate.instances.has_key?(instance)
+      end
+    end
   end
   
   def commands
@@ -27,7 +36,7 @@ class Relay
     if @relays.count < 1 then
       "no relays"
     else
-      @relays.each{ |relay, location| "#{relay} > #{location}"}.join("\n")
+      @relays.map{ |relay, location| "#{relay} > #{location}"}.join("\n")
     end
   end
   
@@ -37,7 +46,7 @@ class Relay
         "relays must be unique"
       else
         @relays[relay] = location
-        "relay setip #{relay} => #{location}"
+        "relay setup #{relay} => #{location}"
       end
     else
       "relays must be in the format: plugin:location, example (efnet:\#zmb)"
@@ -45,8 +54,8 @@ class Relay
   end
   
   def del_command(e, relay)
-    if @plugins.has_key?(relay) then
-      @plugins.delete(relay)
+    if @relays.has_key?(relay) then
+      @relays.delete(relay)
       "#{relay}: relay deleted"
     else
       "no such relay"

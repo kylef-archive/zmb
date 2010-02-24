@@ -9,13 +9,14 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["kylef"]
-  s.date = %q{2010-02-22}
+  s.date = %q{2010-02-24}
   s.default_executable = %q{zmb}
   s.description = %q{ZMB, messenger bot}
   s.email = %q{inbox@kylefuller.co.uk}
   s.executables = ["zmb"]
   s.extra_rdoc_files = [
     "LICENSE",
+     "README.markdown",
      "README.rdoc"
   ]
   s.files = [
@@ -36,6 +37,7 @@ Gem::Specification.new do |s|
      "plugins/commands.rb",
      "plugins/irc.rb",
      "plugins/quote.rb",
+     "plugins/relay.rb",
      "plugins/users.rb",
      "test/helper.rb",
      "test/test_zmb.rb",
