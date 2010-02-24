@@ -22,7 +22,7 @@ class Commands
   
   def self.wizard
     {
-      'cc' => { 'help' => 'The control command to use for commands', 'default' => '!' },
+      'cc' => { 'help' => 'Control command, commands send to zmb must be prefixed with this.', 'default' => '.' },
     }
   end
   
@@ -113,7 +113,7 @@ class Commands
 end
 
 Plugin.define do
-  name "commands"
+  name "This plugin is needed for other plugins to function properly."
   description nil
   object Commands
 end
