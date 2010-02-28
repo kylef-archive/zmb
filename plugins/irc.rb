@@ -115,6 +115,7 @@ class IrcConnection
       'join' => PermCommand.new('admin', self, :join_command),
       'part' => PermCommand.new('admin', self, :part_command),
       'raw' => PermCommand.new('admin', self, :raw_command),
+      'nick' => PermCommand.new('admin', self, :nick_command),
       'tell' => PermCommand.new('admin', self, :tell_command, 2),
     }
   end
@@ -209,6 +210,11 @@ class IrcConnection
   def raw_command(e, line)
     write line
     nil
+  end
+  
+  def nick_command(e, nick)
+    write "NICK #{nick}"
+    "Nick changed to #{nick}"
   end
   
   def tell_command(e, to, message)
