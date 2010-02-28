@@ -94,7 +94,7 @@ class Zmb
   
   def timeout
     if timer_timeout > @maximum_timeout
-      if @sockets.count < 1 then
+      if @sockets.size < 1 then
         5
       else
         @maximum_timeout
