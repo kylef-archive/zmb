@@ -43,8 +43,9 @@ class PluginManager
   
   def refresh_plugin_sources
     sources = @plugin_sources
-    @plugin_sources = nil
-    @plugins = nil
+    
+    @plugins = Array.new
+    @plugin_sources = Array.new
     
     sources.each{|directory| add_plugin_source directory}
   end

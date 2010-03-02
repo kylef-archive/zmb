@@ -203,6 +203,7 @@ class Zmb
       'clone' => PermCommand.new('admin', self, :clone_command, 2),
       'reset' => PermCommand.new('admin', self, :reset_command),
       'addsource' => PermCommand.new('admin', self, :addsource_command),
+      'refresh' => PermCommand.new('admin', self, :refresh_command),
     }
   end
   
@@ -249,7 +250,9 @@ class Zmb
     @instances.keys.join(', ')
   end
   
-  def setup_command(e, plugin, instance)
+  def setup_command(e, plugin, instance=nil)
+    instance = plugin if not instance
+    
     if setup(plugin, instance) then
       object = @plugin_manager.plugin plugin
       result = ["Instance saved, please use the set command to override the default configuration for this instance."]
@@ -297,5 +300,10 @@ class Zmb
   def addsource_command(e, source)
     @plugin_manager.add_plugin_source source
     "#{source} added to plugin manager"
+  end
+  
+  def refresh_command(e)
+    @plugin_manager.refresh_plugin_sources
+    "Refreshed plugin sources"
   end
 end
