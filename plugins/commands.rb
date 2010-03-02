@@ -4,6 +4,7 @@ class Commands
   attr_accessor :cmds, :cc
   
   def initialize(sender, settings={})
+    @delegate = sender
     @cmds = Hash.new
     
     @cc = settings['cc'] if settings.has_key?('cc')
@@ -82,10 +83,29 @@ class Commands
     instance.commands.each{|command, cmd| @cmds.delete(command)} if instance.respond_to?('commands')
   end
   
+  def split_seperators(data)
+    if data.include?("\n") then
+      data.split("\n")
+    elsif data.include?(',') then
+      data.split(',')
+    elsif data.include?(' ') then
+      data.split(' ')
+    else
+      data
+    end
+  end
+  
   def commands
     {
       'help' => Command.new(self, :help),
+      'instance' => Command.new(self, :instance, 1, 'List all commands availible for a instance.'),
       'cc' => PermCommand.new('admin', self, :control_command),
+      'eval' => PermCommand.new('admin', self, :evaluate),
+      'count' => Command.new(self, :count),
+      'grep' => Command.new(self, :grep, 2),
+      'not' => Command.new(self, :not_command, 2),
+      'tail' => Command.new(self, :tail),
+      'echo' => Command.new(self, :echo),
     }
   end
   
@@ -101,6 +121,18 @@ class Commands
     end
   end
   
+  def instance(e, inst)
+    if @delegate.instances.has_key?(inst) then
+      if @delegate.instances[inst].respond_to?('commands') then
+        @delegate.instances[inst].commands.keys.join(', ')
+      else
+        "No commands availible for #{inst}"
+      end 
+    else
+      "No instance found for #{inst}"
+    end
+  end
+  
   def control_command(e, cc=nil)
     if cc then
       @cc = cc
@@ -109,6 +141,30 @@ class Commands
     end
     
     "Control command set to #{@cc}"
+  end
+  
+  def evaluate(e, string)
+    "#{eval string}"
+  end
+  
+  def count(e, data)
+    "#{split_seperators(data).size}"
+  end
+  
+  def grep(e, search, data)
+    split_seperators(data).reject{ |d| not d.include?(search) }.join(', ')
+  end
+  
+  def not_command(e, search, data)
+    split_seperators(data).reject{ |d| d.include?(search) }.join(', ')
+  end
+  
+  def tail(e, data)
+    split_seperators(data).reverse[0..2].join(', ')
+  end
+  
+  def echo(e, data)
+    "#{data}"
   end
 end
 

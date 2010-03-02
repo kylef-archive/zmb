@@ -27,7 +27,7 @@ class Command
       'incorrect arguments'
     rescue Exception
       if e.respond_to?('user') and e.user.respond_to?('admin?') and e.user.admin? and e.private? then
-        "#{$!.message}\n#{$!.inspect}\n#{$!.backtrace.join("\n")}"
+        "#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}"
       else
         "command failed"
       end
