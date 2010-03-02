@@ -236,7 +236,7 @@ class Zmb
     if not @instances.has_key?(instance) then
       load(instance) ? "#{instance} loaded" : "#{instance} did not load correctly"
     else
-      "Instance already #{instance}"
+      "Instance already loaded #{instance}"
     end
   end
   
@@ -253,7 +253,7 @@ class Zmb
     if setup(plugin, instance) then
       object = @plugin_manager.plugin plugin
       result = ["Instance saved, please use the set command to override the default configuration for this instance."]
-      result += d.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" } if object.respond_to? 'wizard'
+      result += object.wizard.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" } if object.respond_to? 'wizard'
       result.join("\n")
     else
       "plugin not found"

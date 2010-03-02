@@ -76,7 +76,7 @@ def wizard(zmb, plugin)
     
     if not instance then
       puts "Must supply instance name, if this plugin should only be loaded once such as commands or users then you can call it that."
-      return wizard zmb, plugin
+      return wizard(zmb, plugin)
     end
     
     zmb.setup(plugin.name, instance)
