@@ -117,6 +117,7 @@ class IrcConnection
       'raw' => PermCommand.new('admin', self, :raw_command),
       'nick' => PermCommand.new('admin', self, :nick_command),
       'tell' => PermCommand.new('admin', self, :tell_command, 2),
+      'reconnect' => PermCommand.new('admin', self, :reconnect_command),
     }
   end
   
@@ -198,29 +199,33 @@ class IrcConnection
   end
   
   def join_command(e, channel)
-    join channel
+    e.delegate.join channel
     "#{channel} joined"
   end
   
   def part_command(e, channel)
-    part channel
+    e.delegate.part channel
     "left #{channel}"
   end
   
   def raw_command(e, line)
-    write line
+    e.delegate.write line
     nil
   end
   
   def nick_command(e, nick)
-    write "NICK #{nick}"
+    e.delegate.write "NICK #{nick}"
     "Nick changed to #{nick}"
   end
   
   def tell_command(e, to, message)
-    msg = msg.split("\n") if not msg.respond_to?('each')
-    msg.each{ |m| message(to, m) }
+    message = message.split("\n") if not message.respond_to?('each')
+    message.each{ |m| e.delegate.message(to, m) }
     nil
+  end
+  
+  def reconnect_command(e, message='Reconnect')
+    e.delegate.write "QUIT :#{message}"
   end
   
   def running(sender)
