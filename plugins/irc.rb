@@ -3,7 +3,7 @@ require 'socket'
 require 'zmb/timer'
 
 class Event
-  attr_accessor :delegate, :command, :args, :name, :userhost, :message
+  attr_accessor :delegate, :command, :args, :name, :userhost, :message, :channel
   
   def initialize(sender, line)
     puts line
@@ -114,6 +114,10 @@ class IrcConnection
     {
       'join' => PermCommand.new('admin', self, :join_command),
       'part' => PermCommand.new('admin', self, :part_command),
+      'cycle' => PermCommand.new('admin', self, :cycle_command),
+      'topic' => PermCommand.new('admin', self, :topic_command, 2),
+      'kick' => PermCommand.new('admin', self, :kick_command, 2),
+      'channels' => PermCommand.new('admin', self, :channels_command),
       'raw' => PermCommand.new('admin', self, :raw_command),
       'nick' => PermCommand.new('admin', self, :nick_command),
       'tell' => PermCommand.new('admin', self, :tell_command, 2),
@@ -206,6 +210,39 @@ class IrcConnection
   def part_command(e, channel)
     e.delegate.part channel
     "left #{channel}"
+  end
+  
+  def cycle_command(e, channel=nil)
+    channel = e.channel if not channel
+    e.delegate.part channel
+    e.delegate.join channel
+    "#{channel} cycled"
+  end
+  
+  def topic_command(e, channel, topic=nil)
+    if not topic then
+      topic = channel
+      channel = e.channel
+    end
+    
+    e.delegate.write "TOPIC #{channel} :#{topic}"
+  end
+  
+  def kick_command(e, channel, nick=nil)
+    if not nick then
+      nick = channel
+      channel = e.channel
+    end
+    
+    e.delegate.write "KICK #{channel} #{nick}"
+  end
+  
+  def channels_command(e)
+    if e.delegate.channels.size > 0 then
+      "Channels: #{e.delegate.channels.join(", ")}"
+    else
+      "I am not in any channels"
+    end
   end
   
   def raw_command(e, line)
