@@ -264,6 +264,11 @@ class Zmb
     settings = @settings.setting(instance)
     settings[key] = value
     @settings.save(instance, settings)
+    
+    if @instances.has_key?(instance) and @instances[instance].respond_to?('update') then
+      @instances[instance].update(key, value)
+    end
+    
     "#{key} set to #{value} for #{instance}"
   end
   
