@@ -85,9 +85,9 @@ class Commands
   
   def split_seperators(data)
     if data.include?("\n") then
-      data.split("\n")
+      data.split("\n").map{ |arg| arg.strip }
     elsif data.include?(',') then
-      data.split(',')
+      data.split(',').map{ |arg| arg.strip }
     elsif data.include?(' ') then
       data.split(' ')
     else
@@ -106,6 +106,7 @@ class Commands
       'not' => Command.new(self, :not_command, 2),
       'tail' => Command.new(self, :tail),
       'echo' => Command.new(self, :echo),
+      'reverse' => Command.new(self, :reverse),
     }
   end
   
@@ -165,6 +166,10 @@ class Commands
   
   def echo(e, data)
     "#{data}"
+  end
+  
+  def reverse(e, data)
+    data.reverse
   end
 end
 
