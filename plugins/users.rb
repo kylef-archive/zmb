@@ -109,24 +109,54 @@ class Users
   end
   
   def commands
-    require 'zmb/commands'
     {
-      'meet' => Command.new(self, :meet, 1, 'Meet a new user'),
-      'forget' => AuthCommand.new(self, :forget, 0, "Forget about a user"),
-      'permit' => PermCommand.new('admin', self, :permit, 2),
-      'deny' => PermCommand.new('admin', self, :deny, 2),
-      'perms' => AuthCommand.new(self, :perms, 1, 'List all permissions a user has.'),
-      'merge' => PermCommand.new('admin', self, :merge, 2, 'Merge two users together'),
-      'password' => AuthCommand.new(self, :password, 1, 'Set the password for your account'),
-      'login' => Command.new(self, :login, 2, 'Add your current host to the username and password provided.'),
-      'logout' => AuthCommand.new(self, :logout, 0, 'Remove your current host from your account.'),
-      'whoami' => Command.new(self, :whoami, 0, 'Who are you logged in as?'),
-      'userhosts' => AuthCommand.new(self, :userhosts, 0, 'List all the hosts associated with your account'),
-      'adduserhost' => AuthCommand.new(self, :adduserhost, 1, 'Add a host to your account'),
-      'deluserhost' => AuthCommand.new(self, :deluserhost, 1, 'Remove a host to your account'),
-      'names' => Command.new(self, :names, 1, 'List all the users'),
-      'seen' => Command.new(self, :seen, 1, 'When was a user last seen'),
-      'sudo' => PermCommand.new('admin', self, :sudo, 2, 'Execute a command as another user.'),
+      'meet' => [:meet, 1, { :help => 'Meet a user' }],
+      'forget' => [:forget, 0, {
+        :help => 'Forget about a user',
+        :permission => 'authenticated' }],
+      'permit' => [:permit, 2, {
+        :permission => 'admin',
+        :help => 'Add a permission to a user',
+        :usage => '<user> <permission>',
+        :example => 'zynox admin' }],
+      'deny' => [:deny, 2, {
+        :permission => 'admin',
+        :help => 'Remove a permission from a user',
+        :usage => '<user> <permission>',
+        :example => 'zynox admin' }],
+      'perms' => [:perms, 0, {
+        :permission => 'authenticated',
+        :help => 'List all the permissions you have' }],
+      'merge' => [:merge, 2, {
+        :permission => 'admin',
+        :help => 'Merge two users together, give user a the permissions and useragents of b and then delete b',
+        :usage => 'user_a user_b'}],
+      'password' => [:password, 1, {
+        :permission => 'authenticated',
+        :help => 'Set the password for your account',
+        :usage => 'password' }],
+      'login' => [:login, 2, {
+        :help => 'Login to your account, adding your current userhost to your account.',
+        :usage => 'username password' }],
+      'logout' => [:logout, 0, {
+        :permission => 'authenticated',
+        :help => 'Logout from your account, this will remove your current userhost from your account.' }],
+      'whoami' => [:whoami, 0, { :help => 'Who are you logged in as?' }],
+      'userhosts' => [:userhosts, 0, {
+        :help => 'List all the userhosts associated with your account.' }],
+      'adduserhost' => [:adduserhost, 1, { :help => 'Add a userhost to your account.' }],
+      'rmuserhost' => [:rmuserhost, 1, { :help => 'Remove a userhost to your account.' }],
+      'names' => [:names, 1, {
+        :help => 'List all the users',
+        :usage => '<search>' }],
+      'seen' => [:seen, 1, {
+        :help => 'When was a user last seen?',
+        :usage => 'user' }],
+      'sudo' => [:sudo, 2, {
+        :permission => 'admin',
+        :help => 'Execute a command as another user.',
+        :usage => 'user command',
+        :example => 'zynox whoami' }],
     }
   end
   
@@ -168,7 +198,7 @@ class Users
     end
   end
   
-  def perms(e, username=nil)
+  def perms(e)
     e.user.permissions.empty? ? "#{e.user.username} has no permissions" : e.user.permissions.join(', ')
   end
   
@@ -221,7 +251,7 @@ class Users
     "#{userhost} added to #{e.user.username}"
   end
   
-  def deluserhost(e, userhost)
+  def rmuserhost(e, userhost)
     if e.user.userhosts.delete(userhost) then
       "#{userhost} deleted from #{e.user.username}"
     else

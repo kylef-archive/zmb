@@ -18,9 +18,11 @@ class NickServ
   end
   
   def commands
-    require 'zmb/commands'
     {
-      'nickserv' => PermCommand.new('admin', self, :set, 1, 'Set your NickServ password.'),
+      'nickserv' => [:set, 1, {
+        :help => 'Set the NickServ password for the bot to login with.',
+        :usage => 'password',
+      }],
     }
   end
   

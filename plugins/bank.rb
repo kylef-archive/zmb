@@ -73,10 +73,12 @@ class Bank
   end
   
   def commands
-    require 'zmb/commands'
     {
-      'balance' => AuthCommand.new(self, :balance, 0, 'See how much funds you have.'),
-      'transfer' => AuthCommand.new(self, :transfer, 2, 'Transfer funds to another account'),
+      'balance' => [:balance, 0, { :help => 'See how much funds you have.' }],
+      'transfer' => [:transfer, 2, {
+        :help => 'Transfer funds to another account',
+        :usage => 'user amount',
+        :example => 'zynox 20' }],
     }
   end
   

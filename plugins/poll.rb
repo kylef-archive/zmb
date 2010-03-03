@@ -29,14 +29,13 @@ class Poll
   end
   
   def commands
-    require 'zmb/commands'
     {
-      'poll-add' => PermCommand.new('admin', self, :add_command, 2),
-      'poll-opt' => PermCommand.new('admin', self, :opt_command, 2),
-      'poll-del' => PermCommand.new('admin', self, :del_command),
-      'vote' => Command.new(self, :vote_command, 2),
-      'polls' => Command.new(self, :polls_command, 0),
-      'poll' => Command.new(self, :poll_command, 1),
+      'poll-add' => [:add_command, 2, { :permission => 'admin' }],
+      'poll-opt' => [:opt_command, 2, { :permission => 'admin' }],
+      'poll-del' => [:del_command, 1, { :permission => 'admin' }],
+      'vote' => [:vote_command, 2],
+      'polls' => [:polls_command, 0],
+      'poll' => :poll_command,
     }
   end
   

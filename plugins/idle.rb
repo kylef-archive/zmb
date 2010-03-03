@@ -14,9 +14,8 @@ class Idle
   end
   
   def commands
-    require 'zmb/commands'
     {
-      'idle' => Command.new(self, :idle, 1, 'How idle has a channel been?'),
+      'idle' => [:idle, 1, { :help => 'How long has this channel been idle?'}],
     }
   end
   

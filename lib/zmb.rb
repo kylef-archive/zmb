@@ -194,18 +194,18 @@ class Zmb
   
   def commands
     {
-      'reload' => PermCommand.new('admin', self, :reload_command),
-      'unload' => PermCommand.new('admin', self, :unload_command),
-      'load' => PermCommand.new('admin', self, :load_command),
-      'save' => PermCommand.new('admin', self, :save_command, 0),
-      'loaded' => PermCommand.new('admin', self, :loaded_command, 0),
-      'setup' => PermCommand.new('admin', self, :setup_command, 2),
-      'set' => PermCommand.new('admin', self, :set_command, 3),
-      'get' => PermCommand.new('admin', self, :get_command, 2),
-      'clone' => PermCommand.new('admin', self, :clone_command, 2),
-      'reset' => PermCommand.new('admin', self, :reset_command),
-      'addsource' => PermCommand.new('admin', self, :addsource_command),
-      'refresh' => PermCommand.new('admin', self, :refresh_command),
+      'reload' => [:reload_command, 1, { :permission => 'admin' }],
+      'unload' => [:unload_command, 1, { :permission => 'admin' }],
+      'load' => [:load_command, 1, { :permission => 'admin' }],
+      'save' => [:save_command, 0, { :permission => 'admin' }],
+      'loaded' => [:loaded_command, 0, { :permission => 'admin' }],
+      'setup' => [:setup_command, 2, { :permission => 'admin' }],
+      'set' => [:set_command, 3, { :permission => 'admin' }],
+      'get' => [:get_command, 2, { :permission => 'admin' }],
+      'clone' => [:clone_command, 2, { :permission => 'admin' }],
+      'reset' => [:reset_command, 1, { :permission => 'admin' }],
+      'addsource' => [:addource_command, 1, { :permission => 'admin' }],
+      'refresh' => [:refresh_command, 1, { :permission => 'admin' }],
     }
   end
   

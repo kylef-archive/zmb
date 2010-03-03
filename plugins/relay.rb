@@ -24,11 +24,15 @@ class Relay
   end
   
   def commands
-    require 'zmb/commands'
     {
-      'relays' => PermCommand.new('admin', self, :relays_command, 0, 'Show all relays'),
-      'relay-add' => PermCommand.new('admin', self, :add_command, 2, 'Add a relay'),
-      'relay-del' => PermCommand.new('admin', self, :del_command, 1, 'Delete a relay'),
+      'relays' => [:relays_command, 0, {
+        :help => 'Show all relays' }],
+      'relay-add' => [:add_command, 2, {
+        :help => 'Add a relay',
+        :permission => 'admin' }],
+      'relay-del' => [:del_command, 1, {
+        :help => 'Delete a relay',
+        :permission => 'admin' }],
     }
   end
   

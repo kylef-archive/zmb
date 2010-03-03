@@ -8,8 +8,8 @@ class System
   def commands
     require 'zmb/commands'
     {
-      'uptime' => Command.new(self, :uptime, 0, 'Server uptime'),
-      'date' => Command.new(self, :date, 0, 'Display the server date/time'),
+      'uptime' => [:uptime, 0, { :help => 'Server uptime' }],
+      'date' => [:date, 0, { :help => 'Display the server date/time' }],
     }
   end
   

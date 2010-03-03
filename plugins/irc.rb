@@ -110,18 +110,17 @@ class IrcConnection
   end
   
   def commands
-    require 'zmb/commands'
     {
-      'join' => PermCommand.new('admin', self, :join_command),
-      'part' => PermCommand.new('admin', self, :part_command),
-      'cycle' => PermCommand.new('admin', self, :cycle_command),
-      'topic' => PermCommand.new('admin', self, :topic_command, 2),
-      'kick' => PermCommand.new('admin', self, :kick_command, 2),
-      'channels' => PermCommand.new('admin', self, :channels_command),
-      'raw' => PermCommand.new('admin', self, :raw_command),
-      'nick' => PermCommand.new('admin', self, :nick_command),
-      'tell' => PermCommand.new('admin', self, :tell_command, 2),
-      'reconnect' => PermCommand.new('admin', self, :reconnect_command),
+      'join' => [:join_command, 1, { :permission => 'admin' }],
+      'part' => [:part_command, 1, { :permission => 'admin' }],
+      'cycle' => [:cycle_command, 1, { :permission => 'admin' }],
+      'topic' => [:topic_command, 2, { :permission => 'admin' }],
+      'kick' => [:kick_command, 2, { :permission => 'admin' }],
+      'channels' => [:channels_command, 1, { :permission => 'admin' }],
+      'raw' => [:raw_command, 1, { :permission => 'admin' }],
+      'nick' => [:nick_command, 1, { :permission => 'admin' }],
+      'tell' => [:tell_command, 2, { :permission => 'admin' }],
+      'reconnect' => [:reconnect_command, 1, { :permission => 'admin' }],
     }
   end
   

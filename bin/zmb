@@ -6,11 +6,12 @@ require 'zmb'
 require 'optparse'
 
 class AdminUser
-  attr_accessor :username, :userhosts
+  attr_accessor :username, :userhosts, :permissions
   
   def initialize
     @username = 'admin'
     @userhosts = []
+    @permissions = ['admin']
   end
   
   def admin?
@@ -27,10 +28,11 @@ class AdminUser
 end
 
 class Event
-  attr_accessor :message
+  attr_accessor :message, :user
   
   def initialize(message)
     @message = message
+    @user = AdminUser.new
   end
   
   def message?
@@ -39,10 +41,6 @@ class Event
   
   def private?
     true
-  end
-  
-  def user
-    AdminUser.new
   end
   
   def reply(msg)

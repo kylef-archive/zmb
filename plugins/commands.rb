@@ -10,11 +10,7 @@ class Commands
     @cc = settings['cc'] if settings.has_key?('cc')
     @cc = '!' if @cc == nil
     
-    @cmds.merge!(commands)
-    
-    sender.post('commands').each do |command|
-      @cmds.merge!(command)
-    end
+    sender.instances.each{ |key, instance| plugin_loaded(key, instance) }
   end
   
   def to_json(*a)
@@ -65,22 +61,63 @@ class Commands
       end
       
       cmd = args.delete_at(0)
-      
-      if @cmds.has_key?(cmd) then
-        args << input if input
-        input = @cmds[cmd].run(e, args)
-      end
+      args << input if input
+      input = execute(cmd, e, args)
     end
     
     e.reply(input) if input
   end
   
+  def execute(cmd, e, args)
+    return if not @cmds.has_key?(cmd)
+    
+    c = @cmds[cmd]
+    
+    if c[2] == 0 then
+      args = Array.new
+    elsif args.size > c[2]
+      a = args.first c[2]-1 # Take one under amount of commands
+      a << args[c[2]-1..-1].join(' ')
+      args = a
+    end
+    
+    # User permissions
+    if (kwargs = c.at(3)) and kwargs.has_key?(:permission) then
+      return if not e.respond_to?('user')
+      
+      if kwargs[:permission] == 'authenticated' then
+        return if not e.user.authenticated?
+      elsif not e.user.permission?(kwargs[:permission])
+        return
+      end
+    end
+    
+    begin
+      c[0].send(c[1], e, *args)
+    rescue ArgumentError
+      'incorrect arguments'
+    rescue Exception
+      if e.respond_to?('user') and e.user.admin? and e.private? then
+        "#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}"
+      else
+        'command failed'
+      end
+    end
+  end
+  
   def plugin_loaded(key, instance)
-    @cmds.merge!(instance.commands) if instance.respond_to?('commands')
+    if instance.respond_to?('commands') then
+      instance.commands.each do |k,v|
+        v = [v] if v.class != Array
+        v.insert(0, instance)
+        v << 1 if v.size == 2 # add default command amount
+        @cmds[k] = v
+      end
+    end
   end
   
   def plugin_unloaded(key, instance)
-    instance.commands.each{|command, cmd| @cmds.delete(command)} if instance.respond_to?('commands')
+    @cmds = @cmds.reject{ |k,v| v[0] == instance }
   end
   
   def split_seperators(data)
@@ -97,25 +134,33 @@ class Commands
   
   def commands
     {
-      'help' => Command.new(self, :help),
-      'instance' => Command.new(self, :instance, 1, 'List all commands availible for a instance.'),
-      'cc' => PermCommand.new('admin', self, :control_command),
-      'eval' => PermCommand.new('admin', self, :evaluate),
-      'count' => Command.new(self, :count),
-      'grep' => Command.new(self, :grep, 2),
-      'not' => Command.new(self, :not_command, 2),
-      'tail' => Command.new(self, :tail),
-      'echo' => Command.new(self, :echo),
-      'reverse' => Command.new(self, :reverse),
+      'help' => :help,
+      'instance' => [:instance, 1, { :help => 'List all commands availible for a instance.'}],
+      'cc' => [:control_command, 1, { :permission => 'admin' }],
+      'eval' => [:evaluate, 1, { :permission => 'admin' }],
+      'count' => :count,
+      'grep' => [:grep, 2],
+      'not' => [:not_command, 2],
+      'tail' => :tail,
+      'echo' => :echo,
+      'reverse' => :reverse,
     }
   end
   
   def help(e, command=nil)
     if command then
-      if @cmds.has_key?(command) and @cmds[command].help? then
-        "#{command}: #{@cmds[command].help}"
-      else
+      h = []
+      
+      if @cmds.has_key?(command) and (kwargs = @cmds[command].at(3)).respond_to?('has_key?') then
+        h << "#{command}: #{kwargs[:help]}" if kwargs.has_key?(:help)
+        h << "Usage: #{command} #{kwargs[:usage]}" if kwargs.has_key?(:usage)
+        h << "Example: #{command} #{kwargs[:example]}" if kwargs.has_key?(:example)
+      end
+      
+      if h.size == 0 then
         'Command not found or no help availible for the command.'
+      else
+        h.join("\n")
       end
     else
       @cmds.keys.join(', ')

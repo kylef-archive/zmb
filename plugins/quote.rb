@@ -32,14 +32,22 @@ class Quote
   end
   
   def commands
-    require 'zmb/commands'
     {
-      'quote' => Command.new(self, :quote_command, 1, 'Show a random quote or the quote with matching id'),
-      'quote-add' => Command.new(self, :add_command, 1, 'Add a quote'),
-      'quote-del' => PermCommand.new('quote', self, :del_command, 1, 'Delete a quote by id'),
-      'quote-count' => Command.new(self, :count_command, 0, 'Show amount of quotes'),
-      'quote-last' => Command.new(self, :last_command, 0, 'Show the last quote'),
-      'quote-search' => Command.new(self, :search_command, 1, 'Search to find a quote'),
+      'quote' => [:quote_command, 1, {
+        :help => 'Show a random quote or the quote with matching id',
+        :usage => '<id>' }],
+      'quote-add' => [:add_command, 1, {
+        :help => 'Add a quote'
+        :example => 'zynox: Hello!'}],
+      'quote-del' => [:del_command, 1, { 
+        :help => 'Delete a quote by id',
+        :example => '7'}],
+      'quote-count' =>[:count_command, 0, {
+        :help => 'Show amount of quotes' }],
+      'quote-last' => [:last_command, 0, { :help => 'Show the last quote'),
+      'quote-search' => [:search_command, 1, {
+        :help => 'Search to find a quote',
+        :usage => 'search' }],
     }
   end
   
