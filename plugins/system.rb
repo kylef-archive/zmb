@@ -1,8 +1,8 @@
 class System
-  def initialize(sender, settings) ;end
+  def initialize(sender, s) ;end
   
-  def to_json(*a)
-    { 'plugin' => 'system' }.to_json(*a)
+  def settings
+    { 'plugin' => 'system' }
   end
   
   def commands

@@ -1,15 +1,15 @@
 class Relay
   attr_accessor :relays
   
-  def initialize(sender, settings={})
-    @relays = settings['relays'] if settings.has_key?('relays')
+  def initialize(sender, s={})
+    @relays = s['relays'] if s.has_key?('relays')
     @relays = Hash.new if not @relays
     
     @delegate = sender
   end
   
-  def to_json(*a)
-    { 'relays' => @relays, 'plugin' => 'relay' }.to_json(*a)
+  def settings
+    { 'relays' => @relays, 'plugin' => 'relay' }
   end
   
   def event(sender, e)

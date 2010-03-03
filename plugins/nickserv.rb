@@ -1,10 +1,10 @@
 class NickServ
-  def initialize(sender, settings)
-    @password = settings['password'] if settings.has_key?('password')
+  def initialize(sender, s)
+    @password = s['password'] if s.has_key?('password')
   end
   
-  def to_json(*a)
-    { 'plugin' => 'nickserv', 'password' => @password }.to_json(*a)
+  def settings
+    { 'plugin' => 'nickserv', 'password' => @password }
   end
   
   def self.wizard

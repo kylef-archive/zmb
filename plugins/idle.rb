@@ -1,10 +1,10 @@
 class Idle
-  def initialize(sender, settings)
+  def initialize(sender, s)
     @channels = Hash.new
   end
   
-  def to_json(*a)
-    { 'plugin' => 'idle' }.to_json(*a)
+  def settings
+    { 'plugin' => 'idle' }
   end
   
   def event(sender, e)

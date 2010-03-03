@@ -42,7 +42,9 @@ class Settings
   
   def save(key, data)
     f = File.open setting_path(key), 'w'
-    f.write data.to_json
+    s = {}
+    s = data.settings if data.respond_to?('settings')
+    f.write s.to_json
     f.close
   end
 end

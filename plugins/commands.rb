@@ -3,18 +3,18 @@ require 'zmb/commands'
 class Commands
   attr_accessor :cmds, :cc
   
-  def initialize(sender, settings={})
+  def initialize(sender, s={})
     @delegate = sender
     @cmds = Hash.new
     
-    @cc = settings['cc'] if settings.has_key?('cc')
+    @cc = s['cc'] if s.has_key?('cc')
     @cc = '!' if @cc == nil
     
     sender.instances.each{ |key, instance| plugin_loaded(key, instance) }
   end
   
-  def to_json(*a)
-    { 'cc' => @cc, 'plugin' => 'commands' }.to_json(*a)
+  def settings
+    { 'cc' => @cc, 'plugin' => 'commands' }
   end
   
   def self.wizard

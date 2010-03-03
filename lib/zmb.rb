@@ -14,11 +14,11 @@ require 'zmb/commands'
 require 'zmb/timer'
 
 class Zmb
-  attr_accessor :instances, :plugin_manager, :settings
+  attr_accessor :instances, :plugin_manager, :settings_manager
   
   def initialize(config_dir)
     @plugin_manager = PluginManager.new
-    @settings = Settings.new(config_dir)
+    @settings_manager = Settings.new(config_dir)
     
     @instances = {'core/zmb' => self}
     @sockets = Hash.new
@@ -28,13 +28,13 @@ class Zmb
     @timers = Array.new
     timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
     
-    @settings.get('core/zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
+    @settings_manager.get('core/zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
     
     if @plugin_manager.plugin_sources.empty? then
       @plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins')
     end
     
-    @settings.get('core/zmb', 'plugin_instances', []).each{|instance| load instance}
+    @settings_manager.get('core/zmb', 'plugin_instances', []).each{|instance| load instance}
     
     @running = false
   end
@@ -43,24 +43,24 @@ class Zmb
     @running
   end
   
-  def to_json(*a)
+  def settings
     {
       'plugin_sources' => @plugin_manager.plugin_sources,
       'plugin_instances' => @instances.keys,
-    }.to_json(*a)
+    }
   end
   
   def save
-    @instances.each{ |k,v| @settings.save(k, v) }
+    @instances.each{ |k,v| @settings_manager.save(k, v) }
   end
   
   def load(key)
     return true if @instances.has_key?(key)
     
-    if p = @settings.get(key, 'plugin') then
+    if p = @settings_manager.get(key, 'plugin') then
       object = @plugin_manager.plugin(p)
       return false if not object
-      @instances[key] = object.new(self, @settings.setting(key))
+      @instances[key] = object.new(self, @settings_manager.setting(key))
       post! :plugin_loaded, key, @instances[key]
       true
     else
@@ -71,7 +71,7 @@ class Zmb
   def unload(key, tell=true)
     return false if not @instances.has_key?(key)
     instance = @instances.delete(key)
-    @settings.save key, instance
+    @settings_manager.save key, instance
     socket_delete instance
     timer_delete instance
     instance.unloaded if instance.respond_to?('unloaded') and tell
@@ -180,7 +180,7 @@ class Zmb
       d.each{ |k,v| settings[k] = v['default'] if v.has_key?('default') and v['default'] }
     end
     
-    @settings.save instance, settings
+    @settings_manager.save instance, settings
     
     true
   end
@@ -214,7 +214,7 @@ class Zmb
       sockets = Array.new
       @sockets.each{ |sock,delegate| sockets << sock if delegate == @instances[instance] }
       unload(instance, false)
-      reloaded = @plugin_manager.reload_plugin(@settings.get(instance, 'plugin'))
+      reloaded = @plugin_manager.reload_plugin(@settings_manager.get(instance, 'plugin'))
       load(instance)
       
       sockets.each{ |socket| @sockets[socket] = @instances[instance] }
@@ -266,9 +266,9 @@ class Zmb
   end
   
   def set_command(e, instance, key, value)
-    settings = @settings.setting(instance)
+    settings = @settings_manager.setting(instance)
     settings[key] = value
-    @settings.save(instance, settings)
+    @settings_manager.save(instance, settings)
     
     if @instances.has_key?(instance) and @instances[instance].respond_to?('update') then
       @instances[instance].update(key, value)
@@ -278,7 +278,7 @@ class Zmb
   end
   
   def get_command(e, instance, key)
-    if value = @settings.get(instance, key) then
+    if value = @settings_manager.get(instance, key) then
       "#{key} is #{value} for #{instance}"
     else
       "#{instance} or #{instance}/#{key} not found."
@@ -286,8 +286,8 @@ class Zmb
   end
   
   def clone_command(e, instance, new_instance)
-    if (settings = @settings.setting(instance)) != {} then
-      @settings.save(new_instance, settings)
+    if (settings = @settings_manager.setting(instance)) != {} then
+      @settings_manager.save(new_instance, settings)
       "The settings for #{instance} were copied to #{new_instance}"
     else
       "No settings for #{instance}"
@@ -295,7 +295,7 @@ class Zmb
   end
   
   def reset_command(e, instance)
-    @settings.save(instance, {})
+    @settings_manager.save(instance, {})
     "Settings for #{instance} have been deleted."
   end
   

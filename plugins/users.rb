@@ -79,14 +79,14 @@ end
 class Users
   attr_accessor :users
   
-  def initialize(sender, settings={})
+  def initialize(sender, s={})
     @delegate = sender
-    @users = settings['users'].map{ |user| User.create_settings(user) } if settings.has_key?('users')
+    @users = s['users'].map{ |user| User.create_settings(user) } if s.has_key?('users')
     @users = Array.new if not @users
   end
   
-  def to_json(*a)
-    {'users' => @users, 'plugin' => 'users'}.to_json(*a)
+  def settings
+    {'users' => @users, 'plugin' => 'users'}
   end
   
   def user!(search)

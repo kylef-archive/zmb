@@ -1,11 +1,11 @@
 class Poll
-  def initialize(sender, settings={})
+  def initialize(sender, s={})
     @polls = Hash.new
-    @polls = settings['polls'] if settings.has_key?('polls')
+    @polls = s['polls'] if s.has_key?('polls')
   end
   
-  def to_json(*a)
-    { 'plugin' => 'poll', 'polls' => @polls }.to_json(*a)
+  def settings
+    { 'plugin' => 'poll', 'polls' => @polls }
   end
   
   def add(slug, poll)

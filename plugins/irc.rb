@@ -53,26 +53,26 @@ end
 class IrcConnection
   attr_accessor :host, :port, :channels, :nick, :name, :realname, :password, :throttle
   
-  def initialize(sender, settings={})
+  def initialize(sender, s={})
     @delegate = sender
     
-    @host = settings['host'] if settings.has_key?('host')
+    @host = s['host'] if s.has_key?('host')
     begin
-      @port = Integer(settings['port']) if settings.has_key?('port')
+      @port = Integer(s['port']) if s.has_key?('port')
     rescue Exception
       @port = 6667
     end
     
     @channels = Array.new
-    @channels = settings['channels'] if settings.has_key?('channels')
+    @channels = s['channels'] if s.has_key?('channels')
     
-    @nick = settings['nick'] if settings.has_key?('nick')
-    @name = settings['name'] if settings.has_key?('name')
-    @realname = settings['realname'] if settings.has_key?('realname')
-    @password = settings['password'] if settings.has_key?('password')
+    @nick = s['nick'] if s.has_key?('nick')
+    @name = s['name'] if s.has_key?('name')
+    @realname = s['realname'] if s.has_key?('realname')
+    @password = s['password'] if s.has_key?('password')
     
     @throttle = 10
-    @throttle = settings['throttle'] if settings.has_key?('throttle')
+    @throttle = s['throttle'] if s.has_key?('throttle')
     
     sender.timer_add(Timer.new(self, :connect, 0.1, false)) if sender.running?
   end
@@ -81,7 +81,7 @@ class IrcConnection
     @socket = value
   end
   
-  def to_json(*a)
+  def settings
     {
       'host' => @host,
       'port' => @port,
@@ -95,7 +95,7 @@ class IrcConnection
       
       'throttle' => @throttle,
       'plugin' => 'irc',
-    }.to_json(*a)
+    }
   end
   
   def self.wizard

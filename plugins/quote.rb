@@ -1,19 +1,19 @@
 class Quote
   attr_accessor :quotes, :autoindex
   
-  def initialize(sender, settings={})
+  def initialize(sender, s={})
     @quotes = Hash.new
-    @quotes = settings['quotes'] if settings.has_key?('quotes')
+    @quotes = s['quotes'] if s.has_key?('quotes')
     @autoindex = 1
-    @autoindex = settings['autoindex'] if settings.has_key?('autoindex')
+    @autoindex = s['autoindex'] if s.has_key?('autoindex')
   end
   
-  def to_json(*a)
+  def settings
     {
       'plugin' => 'quote',
       'quotes' => @quotes,
       'autoindex' => @autoindex,
-    }.to_json(*a)
+    }
   end
   
   def add(quote, username=nil)

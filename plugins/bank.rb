@@ -45,13 +45,13 @@ end
 class Bank
   attr_accessor :accounts
   
-  def initialize(sender, settings={})
-    @accounts = settings['accounts'].map{ |acc| Account.create_settings(acc) } if settings.has_key?('accounts')
+  def initialize(sender, s={})
+    @accounts = s['accounts'].map{ |acc| Account.create_settings(acc) } if s.has_key?('accounts')
     @accounts = Array.new if not @accounts
   end
   
-  def to_json(*a)
-    { 'accounts' => @accounts, 'plugin' => 'bank' }.to_json(*a)
+  def settings
+    { 'accounts' => @accounts, 'plugin' => 'bank' }
   end
   
   def create(username)
