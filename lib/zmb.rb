@@ -186,8 +186,10 @@ class Zmb
   end
   
   def event(sender, e)
-    post! :pre_event, sender, e
-    post! :event, sender, e
+    Thread.new do
+      post! :pre_event, sender, e
+      post! :event, sender, e
+    end
   end
   
   def commands
