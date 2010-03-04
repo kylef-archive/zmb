@@ -51,7 +51,7 @@ class Bank
   end
   
   def settings
-    { 'accounts' => @accounts, 'plugin' => 'bank' }
+    { 'accounts' => @accounts }
   end
   
   def create(username)

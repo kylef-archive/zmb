@@ -1,10 +1,6 @@
 class System
   def initialize(sender, s) ;end
   
-  def settings
-    { 'plugin' => 'system' }
-  end
-  
   def commands
     require 'zmb/commands'
     {

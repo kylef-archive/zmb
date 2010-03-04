@@ -9,7 +9,7 @@ class Relay
   end
   
   def settings
-    { 'relays' => @relays, 'plugin' => 'relay' }
+    { 'relays' => @relays }
   end
   
   def event(sender, e)

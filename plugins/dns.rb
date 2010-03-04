@@ -2,13 +2,7 @@ require 'resolv'
 require 'socket'
 
 class DNS
-  def initialize(sender, s)
-    
-  end
-  
-  def settings
-    { 'plugin' => 'dns' }
-  end
+  def initialize(sender, s) ;end
   
   def commands
     {

@@ -4,7 +4,7 @@ class NickServ
   end
   
   def settings
-    { 'plugin' => 'nickserv', 'password' => @password }
+    { 'password' => @password }
   end
   
   def self.wizard

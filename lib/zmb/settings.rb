@@ -40,10 +40,11 @@ class Settings
     end
   end
   
-  def save(key, data)
+  def save(key, instance)
     f = File.open setting_path(key), 'w'
     s = {}
-    s = data.settings if data.respond_to?('settings')
+    s = instance.settings if instance.respond_to?('settings')
+    s['plugin'] = instance.plugin
     f.write s.to_json
     f.close
   end

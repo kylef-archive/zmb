@@ -9,11 +9,7 @@ class Quote
   end
   
   def settings
-    {
-      'plugin' => 'quote',
-      'quotes' => @quotes,
-      'autoindex' => @autoindex,
-    }
+    { 'quotes' => @quotes, 'autoindex' => @autoindex }
   end
   
   def add(quote, username=nil)

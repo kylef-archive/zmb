@@ -86,7 +86,7 @@ class Users
   end
   
   def settings
-    {'users' => @users, 'plugin' => 'users'}
+    { 'users' => @users }
   end
   
   def user!(search)

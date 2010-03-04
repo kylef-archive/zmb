@@ -5,7 +5,7 @@ class Poll
   end
   
   def settings
-    { 'plugin' => 'poll', 'polls' => @polls }
+    { 'polls' => @polls }
   end
   
   def add(slug, poll)

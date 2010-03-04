@@ -94,7 +94,6 @@ class IrcConnection
       'password' => @password,
       
       'throttle' => @throttle,
-      'plugin' => 'irc',
     }
   end
   

@@ -3,10 +3,6 @@ class Idle
     @channels = Hash.new
   end
   
-  def settings
-    { 'plugin' => 'idle' }
-  end
-  
   def event(sender, e)
     if e.message? and e.respond_to?('channel') then
       @channels[e.channel] = Time.now if not e.message.include?('idle')

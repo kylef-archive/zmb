@@ -14,7 +14,7 @@ class Commands
   end
   
   def settings
-    { 'cc' => @cc, 'plugin' => 'commands' }
+    { 'cc' => @cc }
   end
   
   def self.wizard
@@ -136,6 +136,7 @@ class Commands
     {
       'help' => :help,
       'instance' => [:instance, 1, { :help => 'List all commands availible for a instance.'}],
+      'which' => [:which, 1, { :help => 'Find which plugin handles a command' }],
       'cc' => [:control_command, 1, { :permission => 'admin' }],
       'eval' => [:evaluate, 1, { :permission => 'admin' }],
       'count' => :count,
@@ -176,6 +177,19 @@ class Commands
       end 
     else
       "No instance found for #{inst}"
+    end
+  end
+  
+  def which(e, command)
+    if @cmds.has_key?(command) then
+      c = @cmds[command][0]
+      if c.respond_to?('instance') and c.plugin != c.instance then
+        "#{c.plugin} (#{c.instance})"
+      else
+        c.plugin
+      end
+    else
+      'command not found'
     end
   end
   

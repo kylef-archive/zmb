@@ -16,6 +16,10 @@ require 'zmb/timer'
 class Zmb
   attr_accessor :instances, :plugin_manager, :settings_manager
   
+  def plugin
+    'zmb'
+  end
+  
   def initialize(config_dir)
     @plugin_manager = PluginManager.new
     @settings_manager = Settings.new(config_dir)
@@ -61,6 +65,8 @@ class Zmb
       object = @plugin_manager.plugin(p)
       return false if not object
       @instances[key] = object.new(self, @settings_manager.setting(key))
+      @instances[key].class.send(:define_method, :plugin) { p }
+      @instances[key].class.send(:define_method, :instance) { key }
       post! :plugin_loaded, key, @instances[key]
       true
     else

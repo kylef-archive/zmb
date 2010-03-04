@@ -57,13 +57,7 @@ MORSE = {
 }
 
 class Security
-  def initialize(sender, s)
-    
-  end
-  
-  def settings
-    { 'plugin' => 'security' }
-  end
+  def initialize(sender, s) ;end
   
   def commands
     {
