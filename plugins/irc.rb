@@ -25,6 +25,16 @@ class Event
         @userhost, @channel, @message = args.split(' ', 3)
         @name, @userhost = @userhost.split('!', 2)
         @message = @message[1..-1]
+      when 'join'
+        @userhost, @channel = args.split(' ', 2)
+        @name, @userhost = @userhost.split('!', 2)
+      when 'part'
+        @userhost, @channel = args.split(' ', 2)
+        @name, @userhost = @userhost.split('!', 2)
+      when 'kick'
+        @userhost, @channel, @name, @message = args.split(' ', 4)
+        nick, @userhost = @userhost.split('!', 2)
+        @message = @message[1..-1]
     end
   end
   
@@ -159,6 +169,7 @@ class IrcConnection
   end
   
   def write(line)
+    puts line
     @socket.write line + "\r\n" if @socket
   end
   
