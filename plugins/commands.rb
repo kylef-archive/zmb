@@ -83,12 +83,12 @@ class Commands
     
     # User permissions
     if (kwargs = c.at(3)) and kwargs.has_key?(:permission) then
-      return if not e.respond_to?('user')
-      
-      if kwargs[:permission] == 'authenticated' then
-        return if not e.user.authenticated?
+      if not e.respond_to?('user')
+        return 'user module not loaded'
+      elsif kwargs[:permission] == 'authenticated' then
+        return 'permission denied' if not e.user.authenticated?
       elsif not e.user.permission?(kwargs[:permission])
-        return
+        return 'permission denied'
       end
     end
     
