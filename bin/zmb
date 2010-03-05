@@ -80,7 +80,7 @@ def wizard(zmb, plugin)
     zmb.setup(plugin.name, instance)
     obj = zmb.plugin_manager.plugin plugin.name
     if obj.respond_to?('wizard') then
-      settings = zmb.settings.setting(instance)
+      settings = zmb.settings_manager.setting(instance)
       settings['plugin'] = plugin.name
       
       obj.wizard.each do |key, value|
@@ -90,7 +90,7 @@ def wizard(zmb, plugin)
         end
       end
       
-      zmb.settings.save(instance, settings)
+      zmb.settings_manager.save(instance, settings)
     end
     zmb.load instance
   end
