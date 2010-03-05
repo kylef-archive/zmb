@@ -21,6 +21,8 @@ class Zmb
   end
   
   def initialize(config_dir)
+    @debug = true
+    
     @plugin_manager = PluginManager.new
     @settings_manager = Settings.new(config_dir)
     
@@ -192,6 +194,8 @@ class Zmb
   end
   
   def event(sender, e)
+    puts e.line if @debug and e.respond_to?('line')
+    
     Thread.new do
       post! :pre_event, sender, e
       post! :event, sender, e

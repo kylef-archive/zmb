@@ -3,10 +3,10 @@ require 'socket'
 require 'zmb/timer'
 
 class Event
-  attr_accessor :delegate, :command, :args, :name, :userhost, :message, :channel
+  attr_accessor :delegate, :command, :args, :name, :userhost, :message, :channel, :line
   
   def initialize(sender, line)
-    puts line
+    @line = line
     
     if line[0,1] == ':' then
       line = line[1..-1] # Remove the :
@@ -169,7 +169,6 @@ class IrcConnection
   end
   
   def write(line)
-    puts line
     @socket.write line + "\r\n" if @socket
   end
   

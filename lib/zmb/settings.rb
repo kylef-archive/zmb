@@ -6,6 +6,8 @@ rescue LoadError
 end
 
 class Settings
+  attr_accessor :directory
+  
   def initialize(directory)
     if not File.exist?(directory) then
       FileUtils.makedirs(directory)
