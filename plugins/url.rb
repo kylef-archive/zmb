@@ -85,8 +85,6 @@ class URL
       :authorization => 'burger'
     }})
     
-    puts resp.code
-    
     if resp.code == '302' then
       resp['location']
     else
