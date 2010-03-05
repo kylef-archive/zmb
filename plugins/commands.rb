@@ -1,5 +1,3 @@
-require 'zmb/commands'
-
 class Commands
   attr_accessor :cmds, :cc
   
@@ -8,7 +6,7 @@ class Commands
     @cmds = Hash.new
     
     @cc = s['cc'] if s.has_key?('cc')
-    @cc = '!' if @cc == nil
+    @cc = '.' if @cc == nil
     
     sender.instances.each{ |key, instance| plugin_loaded(key, instance) }
   end
@@ -198,7 +196,7 @@ class Commands
     if cc then
       @cc = cc
     else
-      @cc = '!'
+      @cc = '.'
     end
     
     "Control command set to #{@cc}"

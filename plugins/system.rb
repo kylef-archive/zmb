@@ -2,7 +2,6 @@ class System
   def initialize(sender, s) ;end
   
   def commands
-    require 'zmb/commands'
     {
       'uptime' => [:uptime, 0, { :help => 'Server uptime' }],
       'date' => [:date, 0, { :help => 'Display the server date/time' }],
