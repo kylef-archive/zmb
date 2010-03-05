@@ -163,7 +163,26 @@ class IrcConnection
   end
   
   def message(recipient, msg)
-    write "PRIVMSG #{recipient} :#{msg}"
+    if msg.size >= (total = 515 - (recipient.size + 10)) then
+      words = msg.split(' ')
+      line = words.shift
+      length = line.size
+      
+      words.each do |word|
+        if (length += (word.size + 1)) >= total then
+          write "PRIVMSG #{recipient} :#{line}"
+          sleep 0.1
+          line = word
+          length = word.size
+        else
+          line += " #{word}"
+        end
+      end
+      
+      write "PRIVMSG #{recipient} :#{line}" if line.size > 0
+    else
+      write "PRIVMSG #{recipient} :#{msg}"
+    end
   end
   
   def join(channel)
