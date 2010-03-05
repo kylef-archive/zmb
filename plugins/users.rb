@@ -13,7 +13,8 @@ class User
   
   def self.create_settings(data)
     require 'time'
-    user = new(data['username'], data['password'])
+    user = new(data['username'])
+    user.raw_password = data['password']
     user.userhosts = data['userhosts'] if data.has_key?('userhosts')
     user.permissions = data['permissions'] if data.has_key?('permissions')
     user.seen = Time.parse(data['seen']) if data.has_key?('seen') and data['seen']
@@ -31,6 +32,10 @@ class User
   def concat(other_user)
     @permissions += other_user.permissions
     @userhosts += other_user.userhosts
+  end
+  
+  def raw_password=(new_password)
+    @password = new_password
   end
   
   def password=(new_password)
@@ -223,19 +228,17 @@ class Users
   def login(e, username, password)
     user = user!(username)
     
-    if e.user.authenticated? then
-      'already logged in'
-    elsif user and user.password?(password) then
-      user.hosts << e.userhost
-      "#{request.hostname} added to your account #{user.username}"
+    if user and user.password?(password) then
+      user.userhosts << e.userhost
+      "#{e.userhost} added to your account #{user.username}"
     else
       'user and/or password is incorrect'
     end
   end
   
   def logout(e)
-    e.user.hosts.delete(e.userhost)
-    "userhost #{e.hostname} removed from your account."
+    e.user.userhosts.delete(e.userhost)
+    "userhost #{e.userhost} removed from your account."
   end
   
   def whoami(e)
