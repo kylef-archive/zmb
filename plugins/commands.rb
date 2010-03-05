@@ -135,7 +135,7 @@ class Commands
   def commands
     {
       'help' => :help,
-      'instance' => [:instance, 1, { :help => 'List all commands availible for a instance.'}],
+      'instance' => [:instance_command, 1, { :help => 'List all commands availible for a instance.'}],
       'which' => [:which, 1, { :help => 'Find which plugin handles a command' }],
       'cc' => [:control_command, 1, { :permission => 'admin' }],
       'eval' => [:evaluate, 1, { :permission => 'admin' }],
@@ -164,11 +164,12 @@ class Commands
         h.join("\n")
       end
     else
-      @cmds.keys.join(', ')
+      cmds = @cmds.reject{ |k,v| ((kwargs = v.at(3)) and kwargs.has_key?(:permission)) and not e.user.permission?(kwargs[:permission]) }
+      cmds.keys.join(', ')
     end
   end
   
-  def instance(e, inst)
+  def instance_command(e, inst)
     if @delegate.instances.has_key?(inst) then
       if @delegate.instances[inst].respond_to?('commands') then
         @delegate.instances[inst].commands.keys.join(', ')

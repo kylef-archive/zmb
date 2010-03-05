@@ -173,7 +173,7 @@ class IrcConnection
   end
   
   def message(recipient, msg)
-    if msg.size >= (total = 515 - (recipient.size + 10)) then
+    if msg.size >= (total = 510 - (recipient.size + 10)) then
       words = msg.split(' ')
       line = words.shift
       length = line.size
