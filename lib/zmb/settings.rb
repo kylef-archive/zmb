@@ -42,9 +42,10 @@ class Settings
   
   def save(key, instance)
     f = File.open setting_path(key), 'w'
-    s = {}
+    s = instance
+    s = {} if instance.class != Hash
     s = instance.settings if instance.respond_to?('settings')
-    s['plugin'] = instance.plugin
+    s['plugin'] = instance.plugin if instance.respond_to?('plugin')
     f.write s.to_json
     f.close
   end

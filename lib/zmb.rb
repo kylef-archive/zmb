@@ -24,7 +24,7 @@ class Zmb
     @plugin_manager = PluginManager.new
     @settings_manager = Settings.new(config_dir)
     
-    @instances = {'core/zmb' => self}
+    @instances = {'zmb' => self}
     @sockets = Hash.new
     
     @minimum_timeout = 0.5 # Half a second
@@ -32,13 +32,13 @@ class Zmb
     @timers = Array.new
     timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
     
-    @settings_manager.get('core/zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
+    @settings_manager.get('zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
     
     if @plugin_manager.plugin_sources.empty? then
       @plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins')
     end
     
-    @settings_manager.get('core/zmb', 'plugin_instances', []).each{|instance| load instance}
+    @settings_manager.get('zmb', 'plugin_instances', []).each{|instance| load instance}
     
     @running = false
   end
@@ -178,15 +178,15 @@ class Zmb
     object = @plugin_manager.plugin plugin
     return false if not object
     
-    settings = Hash.new
-    settings['plugin'] = plugin
+    s = Hash.new
+    s['plugin'] = plugin
     
     if object.respond_to? 'wizard' then
       d = object.wizard
-      d.each{ |k,v| settings[k] = v['default'] if v.has_key?('default') and v['default'] }
+      d.each{ |k,v| s[k] = v['default'] if v.has_key?('default') and v['default'] }
     end
     
-    @settings_manager.save instance, settings
+    @settings_manager.save instance, s
     
     true
   end
