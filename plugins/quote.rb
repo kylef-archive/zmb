@@ -33,14 +33,14 @@ class Quote
         :help => 'Show a random quote or the quote with matching id',
         :usage => '<id>' }],
       'quote-add' => [:add_command, 1, {
-        :help => 'Add a quote'
-        :example => 'zynox: Hello!'}],
+        :help => 'Add a quote',
+        :example => 'zynox: Hello!' }],
       'quote-del' => [:del_command, 1, { 
         :help => 'Delete a quote by id',
         :example => '7'}],
       'quote-count' =>[:count_command, 0, {
         :help => 'Show amount of quotes' }],
-      'quote-last' => [:last_command, 0, { :help => 'Show the last quote'),
+      'quote-last' => [:last_command, 0, { :help => 'Show the last quote' }],
       'quote-search' => [:search_command, 1, {
         :help => 'Search to find a quote',
         :usage => 'search' }],
