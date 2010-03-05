@@ -10,7 +10,6 @@ end
 require 'zmb/plugin'
 require 'zmb/settings'
 require 'zmb/event'
-require 'zmb/commands'
 require 'zmb/timer'
 
 class Zmb
