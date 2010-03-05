@@ -113,7 +113,7 @@ class IrcConnection
       'port' => { 'help' => 'Port', 'default' => 6667 },
       'nick' => { 'help' => 'Nickname', 'default' => 'zmb' },
       'name' => { 'help' => 'Name', 'default' => 'zmb' },
-      'realname' => { 'help' => 'Realname', 'default' => 'zmb' },
+      'realname' => { 'help' => 'Realname', 'default' => 'Unknown' },
       'password' => { 'help' => 'If the ircd requires a password, enter this here.', 'default' => nil },
     }
   end
@@ -165,7 +165,7 @@ class IrcConnection
   def perform
     write "PASS #{@password}" if @password
     write "NICK #{@nick}" if @nick
-    write "USER #{@name} 0 0 :#{@realname}" if @name and @realname
+    write "USER #{@name} 0 * :#{@realname}" if @name and @realname
   end
   
   def write(line)
@@ -217,7 +217,9 @@ class IrcConnection
       # Catch some events
       case e.command
         when 'ping' then write "PONG #{e.args[1..-1]}"
-        when '001' then @channels.each{ |channel| write "JOIN #{channel}" }
+        when '001' then
+          sleep 0.1
+          @channels.each{ |channel| write "JOIN #{channel}" }
         when 'nick' then tmp, @nick = e.args.split(' :', 2)
         when '433' then
           @nick="#{@nick}_"
