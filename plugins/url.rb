@@ -19,16 +19,19 @@ class URL
   
   def http(host, port=80, path='/', type='get', query_string={})
     http = Net::HTTP.new(host, port)
-    resp, body = http.start do |http|
+    query_string = to_query_string(query_string) if query_string.class == Hash
+    http.start do |h|
       case type
-        when 'get' then http.get(path + '?' + to_query_string(query_string))
-        when 'post' then http.post(path, to_query_string(query_string))
+        when 'get' then h.get(path + '?' + query_string)
+        when 'post' then h.post(path, query_string)
+        when 'head' then h.head(path + '?' + query_string)
       end
     end
   end
   
   def commands
     {
+      'head' => :head,
       'bitly' => :bitly,
       'isgd' => :isgd,
       'tinyurl' => :tinyurl,
@@ -36,6 +39,21 @@ class URL
       'pastie' => :pastie_command,
       'ppastie' => [:private_pastie_command, 1, { :help => 'Create a private pastie' }],
     }
+  end
+  
+  def head(e, url)
+    u = URI.parse(url)
+    u.path = '/' if u.path.size == 0
+    u.query = '' if not u.query
+    
+    resp = http(u.host, u.port, u.path, 'head', u.query)
+    if resp.code == "301" or resp.code == "302" then
+      "#{resp.code} - #{resp['location']}"
+    elsif resp.code == "404" then
+      "404 - Page not found"
+    else
+      "#{resp.code}"
+    end
   end
   
   def bitly(e, link)
