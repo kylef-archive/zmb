@@ -29,9 +29,17 @@ class URL
     end
   end
   
+  def http_uri(url, type='get')
+    u = URI.parse(url)
+    u.path = '/' if u.path.size == 0
+    u.query = '' if not u.query
+    http(u.host, u.port, u.path, type, u.query)
+  end
+  
   def commands
     {
       'head' => :head,
+      'get' => [:get, 1, { :permission => 'admin' }],
       'bitly' => :bitly,
       'isgd' => :isgd,
       'tinyurl' => :tinyurl,
@@ -42,11 +50,8 @@ class URL
   end
   
   def head(e, url)
-    u = URI.parse(url)
-    u.path = '/' if u.path.size == 0
-    u.query = '' if not u.query
+    resp = http_uri(url, 'head')
     
-    resp = http(u.host, u.port, u.path, 'head', u.query)
     if resp.code == "301" or resp.code == "302" then
       "#{resp.code} - #{resp['location']}"
     elsif resp.code == "404" then
@@ -54,6 +59,11 @@ class URL
     else
       "#{resp.code}"
     end
+  end
+  
+  def get(e, url)
+    resp, body = http_uri(url)
+    body
   end
   
   def bitly(e, link)
