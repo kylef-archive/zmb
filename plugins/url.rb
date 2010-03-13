@@ -39,7 +39,7 @@ class URL
   def commands
     {
       'head' => :head,
-      'get' => [:get, 1, { :permission => 'admin' }],
+      'url' => [:get, 1, { :permission => 'admin' }],
       'bitly' => :bitly,
       'isgd' => :isgd,
       'tinyurl' => :tinyurl,
