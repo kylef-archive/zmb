@@ -33,10 +33,15 @@ class Zmb
     @timers = Array.new
     timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
     
+    plugin_dir = File.join(@settings_manager.directory, 'plugins')
+    if not File.exist?(plugin_dir) then
+      FileUtils.makedirs(plugin_dir)
+    end
+    
     @plugin_sources = @settings_manager.get('zmb', 'plugin_sources', [])
     @plugin_sources.each{ |source| @plugin_manager.add_plugin_source source }
     @plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins')
-    @plugin_manager.add_plugin_source File.join(@settings_manager.directory, 'plugins')
+    @plugin_manager.add_plugin_source plugin_dir
     
     @settings_manager.get('zmb', 'plugin_instances', []).each{|instance| load instance}
     
