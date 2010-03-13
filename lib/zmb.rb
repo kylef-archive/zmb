@@ -13,7 +13,7 @@ require 'zmb/event'
 require 'zmb/timer'
 
 class Zmb
-  attr_accessor :instances, :plugin_manager, :settings_manager
+  attr_accessor :instances, :plugin_manager, :settings_manager, :plugin_sources
   
   def plugin
     'zmb'
@@ -33,11 +33,10 @@ class Zmb
     @timers = Array.new
     timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
     
-    @settings_manager.get('zmb', 'plugin_sources', []).each{|source| @plugin_manager.add_plugin_source source}
-    
-    if @plugin_manager.plugin_sources.empty? then
-      @plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins')
-    end
+    @plugin_sources = @settings_manager.get('zmb', 'plugin_sources', [])
+    @plugin_sources.each{ |source| @plugin_manager.add_plugin_source source }
+    @plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins')
+    @plugin_manager.add_plugin_source File.join(@settings_manager.directory, 'plugins')
     
     @settings_manager.get('zmb', 'plugin_instances', []).each{|instance| load instance}
     
@@ -50,7 +49,7 @@ class Zmb
   
   def settings
     {
-      'plugin_sources' => @plugin_manager.plugin_sources,
+      'plugin_sources' => @plugin_sources,
       'plugin_instances' => @instances.keys,
     }
   end
@@ -309,6 +308,7 @@ class Zmb
   end
   
   def addsource_command(e, source)
+    @plugin_sources << source
     @plugin_manager.add_plugin_source source
     "#{source} added to plugin manager"
   end
