@@ -39,7 +39,11 @@ class Account
 end
 
 class Event
-  attr_accessor :bank
+  attr_accessor :banks
+  
+  def bank
+    banks.account(@user.username) if respond_to?('user') and @user.respond_to?('username')
+  end
 end
 
 class Bank
@@ -69,7 +73,8 @@ class Bank
   end
   
   def pre_event(sender, e)
-    e.bank = account(e.user.username) if e.respond_to?('user') and e.user.respond_to?('username')
+    e.banks = self
+    #e.bank = account(e.user.username) if e.respond_to?('user') and e.user.respond_to?('username')
   end
   
   def commands
