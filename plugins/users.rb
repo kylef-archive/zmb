@@ -1,11 +1,11 @@
 class Event
-  attr_accessor :user
+  attr_accessor :user, :users
 end
 
 class User
   require 'digest/sha1'
   
-  attr_accessor :username, :password, :userhosts, :permissions, :seen
+  attr_accessor :username, :password, :userhosts, :permissions, :seen, :users
   
   def to_json(*a)
     {'username' => @username, 'password' => @password, 'userhosts' => @userhosts, 'permissions' => @permissions, 'seen' => @seen}.to_json(*a)
@@ -105,6 +105,7 @@ class Users
   def pre_event(sender, e)
     e.user = user(e.userhost) if e.respond_to?('userhost') and not e.user
     e.user.seen = Time.now if e.user.respond_to?('seen')
+    e.users = self
   end
   
   def create_user(username, password=nil, userhost=nil)
