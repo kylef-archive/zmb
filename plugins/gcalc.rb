@@ -19,7 +19,7 @@ class GCalc
     
     if resp.code == '200' then
       if body.include?('<img src=/images/calc_img.gif width=40 height=30 alt="">')
-        body.split('<img src=/images/calc_img.gif width=40 height=30 alt="">')[1].split('<b>')[1].split('</b>')[0]
+        body.split('<img src=/images/calc_img.gif width=40 height=30 alt="">')[1].split('<b>')[1].split('</b>')[0].sub('<font size=-2> </font>', '').sub('&#215;', '*').sub('<sup>', '**').sub('</sup>', '')
       else
         'Your expression can\'t be evaluated by the google calculator'
       end
