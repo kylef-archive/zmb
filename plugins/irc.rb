@@ -28,6 +28,7 @@ class Event
       when 'join'
         @userhost, @channel = args.split(' ', 2)
         @name, @userhost = @userhost.split('!', 2)
+        @channel = @channel[1..-1]
       when 'part'
         @userhost, @channel = args.split(' ', 2)
         @name, @userhost = @userhost.split('!', 2)
