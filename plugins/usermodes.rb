@@ -43,19 +43,21 @@ class Usermodes
         :help => 'Apply a usermode to a user when they join a channel',
         :usage => 'instance channel user mode',
         :example => 'efnet #zmb zynox o' }],
-      'usermode-del' => [:usermode_del, 4  , {
+      'usermode-del' => [:usermode_del, 4, {
         :permission => 'admin',
         :help => 'Delete a usermode',
         :usage => 'instance channel user mode',
         :example => 'efnet #zmb zynox o' }],
-      'usermodes' => [:usermodes, 2    , {
+      'usermodes' => [:usermodes, 2, {
         :permission => 'admin',
         :help => 'List all usermodes for a channel',
         :usage => 'instance channel',
         :example => 'efnet #zmb' }],
-      'usermodes-ls' => [:usermodes_ls      , {
+      'usermodes-ls' => [:usermodes_ls, {
         :permission => 'admin',
         :help => 'List all channels usermodes are applied to' }],
+      'enforce' => [:enforce, 0, { :permission => 'authenticated' }],
+      'vanish' => [:vanish, 0, { :permission => 'authenticated' }],
     }
   end
   
@@ -80,6 +82,22 @@ class Usermodes
   
   def usermodes_ls(e)
     @usermodes.keys.map{ |k| k.split(':', 2) }.map{ |i,c| "#{i} - #{c}" }.join("\n")
+  end
+  
+  def enforce(e)
+    if @usermodes.has_key?(k = e.delegate.instance + ':' + e.channel) and e.user.authenticated? and @usermodes[k].has_key?(e.user.username) then
+      @usermodes[k][e.user.username].each{ |mode| e.delegate.write "MODE #{e.channel} +#{mode} #{e.name}" }
+    end
+    
+    "usermodes enforced"
+  end
+  
+  def vanish(e)
+    if @usermodes.has_key?(k = e.delegate.instance + ':' + e.channel) and e.user.authenticated? and @usermodes[k].has_key?(e.user.username) then
+      @usermodes[k][e.user.username].each{ |mode| e.delegate.write "MODE #{e.channel} -#{mode} #{e.name}" }
+    end
+    
+    "usermodes vanished"
   end
 end
 
