@@ -30,11 +30,10 @@ class Commands
       line = e.message.clone
     end
     
-    # Encode escaped quotation marks
-    line.gsub!(/\\"|\\'/) { |m| m =~ /^\\"$/ ? "\000d\000" : "\000s\000" }
-    
-    # Encode pipes inside quotation marks
-    line.gsub!(/"\w*\|\w*"/) { |m| m.sub('|', "\000p\000") }
+    # Encode escaped quotation marks and pipes
+    line.gsub!('\"', "\000d\000")
+    line.gsub!("\\'", "\000s\000")
+    line.gsub!('\|', "\000p\000")
     
     # Check there are a even amount of "" and ''
     if ((line.count("'") % 2) == 1) and ((line.count('""') % 2) == 1) then
@@ -53,9 +52,9 @@ class Commands
       
       # Decode escape quotation marks and pipes inside the args
       args.each do |arg|
-        arg.sub!("\000d\000", '"')
-        arg.sub!("\000s\000", "'")
-        arg.sub!("\000p\000", '|')
+        arg.gsub!("\000d\000", '"')
+        arg.gsub!("\000s\000", "'")
+        arg.gsub!("\000p\000", '|')
       end
       
       cmd = args.delete_at(0)
@@ -203,7 +202,11 @@ class Commands
   end
   
   def evaluate(e, string)
-    "#{eval string}"
+    begin
+      "#{eval string}"
+    rescue Exception
+      "#{$!.message}\n#{$!.inspect}"
+    end
   end
   
   def count(e, data)
