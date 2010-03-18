@@ -21,6 +21,10 @@ class User
     user
   end
   
+  def to_s
+    @username
+  end
+  
   def initialize(username=nil, password=nil, userhost=nil)
     @username = username
     @password = Digest::SHA1.hexdigest(password) if password
@@ -51,7 +55,7 @@ class User
   end
   
   def admin?
-    @permissions.include?("owner") or @permissions.include?("admin")
+    @permissions.include?('owner') or @permissions.include?('admin')
   end
   
   def permission?(permission)
@@ -103,21 +107,18 @@ class Users
   end
   
   def pre_event(sender, e)
-    e.user = user(e.userhost) if e.respond_to?('userhost') and not e.user
-    e.user.seen = Time.now if e.user.respond_to?('seen')
+    e.user = user(e.userhost) if not e.user and e.respond_to?('userhost')
+    e.user.seen = Time.now if e.user.respond_to?('seen=')
     e.users = self
-  end
-  
-  def create_user(username, password=nil, userhost=nil)
-    user = User.new(username, password, userhost)
-    @users << user
-    user
+    
+    #e.instance_variable_set(:@user, user(e.userhost)) if e.respond_to?('userhost')
+    #def e.user; user(e.userhost); end
   end
   
   def commands
     {
       'meet' => [:meet, 1, { :help => 'Meet a user' }],
-      'forget' => [:forget, 0, {
+      'forget' => [:forget, 1, {
         :help => 'Forget about a user',
         :permission => 'authenticated' }],
       'permit' => [:permit, 2, {
@@ -133,6 +134,8 @@ class Users
       'perms' => [:perms, 0, {
         :permission => 'authenticated',
         :help => 'List all the permissions you have' }],
+      'group' => [:group, 1, {
+        :permission => 'admin' }],
       'merge' => [:merge, 2, {
         :permission => 'admin',
         :help => 'Merge two users together, give user a the permissions and useragents of b and then delete b',
@@ -149,9 +152,14 @@ class Users
         :help => 'Logout from your account, this will remove your current userhost from your account.' }],
       'whoami' => [:whoami, 0, { :help => 'Who are you logged in as?' }],
       'userhosts' => [:userhosts, 0, {
+        :permission => 'authenticated',
         :help => 'List all the userhosts associated with your account.' }],
-      'adduserhost' => [:adduserhost, 1, { :help => 'Add a userhost to your account.' }],
-      'rmuserhost' => [:rmuserhost, 1, { :help => 'Remove a userhost to your account.' }],
+      'adduserhost' => [:adduserhost, 1, {
+        :permission => 'authenticated',
+        :help => 'Add a userhost to your account.' }],
+      'rmuserhost' => [:rmuserhost, 1, {
+        :permission => 'authenticated',
+        :help => 'Remove a userhost to your account.' }],
       'names' => [:names, 1, {
         :help => 'List all the users',
         :usage => '<search>' }],
@@ -167,23 +175,23 @@ class Users
   end
   
   def meet(e, username=nil)
-    if e.user.admin? and username then
-      return "#{username} already exists" if user!(username)
-      user = create_user(username)
-      "Hello #{username}"
-    elsif not e.user.authenticated? then
-      return "#{e.sender} already exists" if user!(e.sender)
-      if e.respond_to?('userhost') and e.respond_to?('user') then
-        user = create_user(e.name, nil, e.userhost)
-      end
-      "Hello #{user.username}"
+    username = e.name if not e.user.admin?
+    
+    if not user!(username) then
+      @users << user = User.new(username)
+      user.userhosts << e.userhost if not e.user.admin? and e.respond_to?('userhost')
+      "Hello #{e.user}"
     else
-      "You already have an account #{e.user.username}"
+      "You already have an account #{e.user}"
     end
   end
   
-  def forget(e)
-    "user #{@e.users.delete(e.user).username} deleted"
+  def forget(e, username=nil)
+    if e.user.admin? and username then
+      "user #{@users.delete(user(username))} deleted"
+    else
+      "user #{@users.delete(e.user)} deleted"
+    end
   end
   
   def permit(e, username, permission)
@@ -205,7 +213,11 @@ class Users
   end
   
   def perms(e)
-    e.user.permissions.empty? ? "#{e.user.username} has no permissions" : e.user.permissions.join(', ')
+    e.user.permissions.empty? ? "#{e.user} has no permissions" : e.user.permissions.join(', ')
+  end
+  
+  def group(e, group)
+    @users.reject{ |user| not user.permissions.include?(group) }.join(', ')
   end
   
   def merge(e, username, other_username)
@@ -215,7 +227,7 @@ class Users
     if user and other_user then
       user.concat other_user 
       @users.delete other_user
-      "#{other_user.username} now merged into #{user.username}"
+      "#{other_user} now merged into #{user}"
     else
       'User(s) do not exist'
     end
@@ -223,7 +235,7 @@ class Users
   
   def password(e, password)
     e.user.password = password
-    "#{e.user.username} password has been set to #{password}"
+    "#{e.user} password has been set to #{password}"
   end
   
   def login(e, username, password)
@@ -231,7 +243,7 @@ class Users
     
     if user and user.password?(password) then
       user.userhosts << e.userhost
-      "#{e.userhost} added to your account #{user.username}"
+      "#{e.userhost} added to your account #{user}"
     else
       'user and/or password is incorrect'
     end
@@ -243,28 +255,28 @@ class Users
   end
   
   def whoami(e)
-    e.user.authenticated? ? "#{e.user.username}" : 'nobody'
+    e.user.authenticated? ? "#{e.user}" : 'nobody'
   end
   
   def userhosts(e)
-    e.user.userhosts.empty? ?  "#{e.user.username} has no userhosts" : e.user.userhosts.join(', ')
+    e.user.userhosts.empty? ?  "#{e.user} has no userhosts" : e.user.userhosts.join(', ')
   end
   
   def adduserhost(e, userhost)
     e.user.userhosts << userhost
-    "#{userhost} added to #{e.user.username}"
+    "#{userhost} added to #{e.user}"
   end
   
   def rmuserhost(e, userhost)
     if e.user.userhosts.delete(userhost) then
-      "#{userhost} deleted from #{e.user.username}"
+      "#{userhost} deleted from #{e.user}"
     else
-      "#{e.user.username} doesn't have #{userhost}"
+      "#{e.user} doesn't have #{userhost}"
     end
   end
   
   def names(e, search=nil)
-    users = @users.map{|user| user.username}
+    users = @users.map{ |user| user.username }
     users = users.grep(/#{search}/i) if search
     
     if users.empty? then
@@ -274,7 +286,7 @@ class Users
     end
   end
   
-  def seen(e, username=nil)
+  def seen(e, username)
     if user = user!(username) and user.seen then
       diff = Time.now - user.seen
       
@@ -294,21 +306,21 @@ class Users
     end
   end
   
-  def sudo(e, search, command)
-    if user = user!(search) then
+  def sudo(e, username, command)
+    if user = user!(username) then
       new_event = e.clone
       new_event.user = user
       new_event.message = @delegate.instances['commands'].cc + command
       @delegate.event(self, new_event)
       nil
     else
-      "#{search}: Username or userhost not found"
+      "#{username}: User not found"
     end
   end
 end
 
 Plugin.define do 
-  name "users"
-  description "users manager"
+  name 'users'
+  description 'user accounts/permissions system'
   object Users
 end
