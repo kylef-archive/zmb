@@ -36,7 +36,7 @@ class Commands
     line.gsub!('\|', "\000p\000")
     
     # Check there are a even amount of "" and ''
-    if ((line.count("'") % 2) == 1) and ((line.count('""') % 2) == 1) then
+    if ((line.count("'") % 2) == 1) and ((line.count('"') % 2) == 1) then
       return e.reply('Incorrect amount of quotation marks\'s')
     end
     
@@ -142,6 +142,8 @@ class Commands
       'tail' => :tail,
       'echo' => :echo,
       'reverse' => :reverse,
+      'first' => :first,
+      'last' => :last,
     }
   end
   
@@ -231,6 +233,14 @@ class Commands
   
   def reverse(e, data)
     data.reverse
+  end
+  
+  def first(e, data)
+    split_seperators(data).first
+  end
+  
+  def last(e, data)
+    split_seperators(data).last
   end
 end
 
