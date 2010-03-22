@@ -53,11 +53,15 @@ class Usermodes
         :help => 'List all usermodes for a channel',
         :usage => 'instance channel',
         :example => 'efnet #zmb' }],
-      'usermodes-ls' => [:usermodes_ls, {
+      'usermodes-ls' => [:usermodes_ls, 0, {
         :permission => 'admin',
         :help => 'List all channels usermodes are applied to' }],
-      'enforce' => [:enforce, 0, { :permission => 'authenticated' }],
-      'vanish' => [:vanish, 0, { :permission => 'authenticated' }],
+      'enforce' => [:enforce, 0, {
+        :permission => 'authenticated',
+        :help => 'Enforce all your usermodes in the current channel.' }],
+      'vanish' => [:vanish, 0, {
+        :permission => 'authenticated',
+        :help => 'Remove all your usermodes in the current channel.' }],
     }
   end
   
