@@ -144,6 +144,18 @@ class Commands
       'reverse' => :reverse,
       'first' => :first,
       'last' => :last,
+      'sub' => [:sub, 3, {
+        :help => 'Replace all occurances of a pattern',
+        :usage => 'pattern replacement data',
+        :example => 'l * Hello World!' }],
+      'tr' => [:tr, 3, {
+        :help => 'Returns a copy of str with the characters in from_str replaced by the corresponding characters in to_str',
+        :usage => 'from_str to_str data',
+        :example => 'aeiou * hello' }],
+      'downcase' => :downcase,
+      'upcase' => :upcase,
+      'swapcase' => :swapcase,
+      'capitalize' => :capitalize,
     }
   end
   
@@ -241,6 +253,30 @@ class Commands
   
   def last(e, data)
     split_seperators(data).last
+  end
+  
+  def sub(e, pattern, replacement, data)
+    data.gsub(pattern, replacement)
+  end
+  
+  def tr(e, from_str, to_str, data)
+    data.tr(from_str, to_str)
+  end
+  
+  def downcase(e, data)
+    data.downcase
+  end
+  
+  def upcase(e, data)
+    data.upcase
+  end
+  
+  def swapcase(e, data)
+    data.swapcase
+  end
+  
+  def capitalize(e, data)
+    data.capitalize
   end
 end
 
