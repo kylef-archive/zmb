@@ -121,16 +121,51 @@ class IrcConnection
   
   def commands
     {
-      'join' => [:join_command, 1, { :permission => 'admin' }],
-      'part' => [:part_command, 1, { :permission => 'admin' }],
-      'cycle' => [:cycle_command, 1, { :permission => 'admin' }],
-      'topic' => [:topic_command, 2, { :permission => 'admin' }],
-      'kick' => [:kick_command, 2, { :permission => 'admin' }],
-      'channels' => [:channels_command, 1, { :permission => 'admin' }],
-      'raw' => [:raw_command, 1, { :permission => 'admin' }],
-      'nick' => [:nick_command, 1, { :permission => 'admin' }],
-      'tell' => [:tell_command, 2, { :permission => 'admin' }],
-      'reconnect' => [:reconnect_command, 1, { :permission => 'admin' }],
+      'join' => [:join_command, 1, {
+        :permission => 'admin',
+        :help => 'Join a channel',
+        :usage => 'channel',
+        :example => '#zmb' }],
+      'part' => [:part_command, 1, {
+        :permission => 'admin',
+        :help => 'Leave a channel',
+        :usage => 'channel',
+        :example => '#zmb' }],
+      'cycle' => [:cycle_command, 1, {
+        :permission => 'admin',
+        :help => 'Part and rejoin a channel',
+        :usage => 'channel',
+        :example => '#zmb' }],
+      'topic' => [:topic_command, 2, {
+        :permission => 'admin',
+        :help => 'Set the topic in a channel',
+        :usage => 'channel topic',
+        :example => '#zmb' }],
+      'kick' => [:kick_command, 2, {
+        :permission => 'admin',
+        :help => 'Kick a user from a channel',
+        :usage => 'channel user',
+        :example => '#zmb zynox' }],
+      'channels' => [:channels_command, 1, {
+        :permission => 'admin',
+        :help => 'List all the channels this bot is in.' }],
+      'raw' => [:raw_command, 1, {
+        :permission => 'admin',
+        :help => 'Send raw IRC commands',
+        :usage => 'command',
+        :example => 'PRIVMSG #zmb :Hello world!' }],
+      'nick' => [:nick_command, 1, {
+        :permission => 'admin',
+        :help => 'Change the bot\'s nick',
+        :usage => 'new-nick',
+        :example => 'zmb' }],
+      'tell' => [:tell_command, 2, {
+        :permission => 'admin',
+        :usage => 'location message',
+        :example => '#zmb Hello World!' }],
+      'reconnect' => [:reconnect_command, 1, {
+        :permission => 'admin',
+        :help => 'Reconnect to the irc server' }],
     }
   end
   
@@ -140,8 +175,8 @@ class IrcConnection
   end
   
   def nick=(value)
-    @nick = value
     write "NICK #{@nick}"
+    @nick = value
   end
   
   def connected?
@@ -170,7 +205,11 @@ class IrcConnection
   end
   
   def write(line)
-    @socket.write line + "\r\n" if @socket
+    begin
+      @socket.write line + "\r\n" if @socket
+    rescue
+      disconnected(self, nil)
+    end  
   end
   
   def message(recipient, msg)
@@ -221,10 +260,7 @@ class IrcConnection
         when '001' then
           sleep 0.1
           @channels.each{ |channel| write "JOIN #{channel}" }
-        when 'nick' then tmp, @nick = e.args.split(' :', 2)
-        when '433' then
-          @nick="#{@nick}_"
-          write "NICK #{@nick}"
+        when '433' then nick = "#{@nick}_"
       end
       
       @delegate.event(self, e)
