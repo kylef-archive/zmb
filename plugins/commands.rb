@@ -21,6 +21,14 @@ class Commands
     }
   end
   
+  def escape
+    {
+      '"' => "\000d\000",
+      "'" => "\000s\000",
+      '|' => "\000p\000",
+    }
+  end
+  
   def event(sender, e)
     return if not e.message?
     
@@ -31,9 +39,7 @@ class Commands
     end
     
     # Encode escaped quotation marks and pipes
-    line.gsub!('\"', "\000d\000")
-    line.gsub!("\\'", "\000s\000")
-    line.gsub!('\|', "\000p\000")
+    escape.each{ |k,v| line.gsub!("\\" + k, v) }
     
     # Check there are a even amount of "" and ''
     if ((line.count("'") % 2) == 1) and ((line.count('"') % 2) == 1) then
@@ -51,11 +57,7 @@ class Commands
       args = command.split(/"([^"]*)"|'([^']*)'|\s/).reject{ |x| x.empty? }
       
       # Decode escape quotation marks and pipes inside the args
-      args.each do |arg|
-        arg.gsub!("\000d\000", '"')
-        arg.gsub!("\000s\000", "'")
-        arg.gsub!("\000p\000", '|')
-      end
+      args.each{ |arg| escape.each{ |k,v| arg.gsub!(v, k) } }
       
       cmd = args.delete_at(0)
       args << input if input
@@ -65,8 +67,8 @@ class Commands
     e.reply(input) if input
   end
   
-  def execute(cmd, e, args)
-    return if not @cmds.has_key?(cmd)
+  def execute(cmd, e, args=[])
+    return "#{cmd}: command not found" if not @cmds.has_key?(cmd)
     
     c = @cmds[cmd]
     
