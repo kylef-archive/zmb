@@ -306,15 +306,17 @@ class Users
     end
   end
   
-  def sudo(e, username, command)
-    if user = user!(username) then
+  def sudo(e, username, command=nil)
+    user = user(username)
+    
+    if command then
       new_event = e.clone
       new_event.user = user
       new_event.message = @delegate.instances['commands'].cc + command
       @delegate.event(self, new_event)
       nil
     else
-      "#{username}: User not found"
+      e.user = user
     end
   end
 end
