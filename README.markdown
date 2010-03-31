@@ -26,11 +26,26 @@ You can run zmb in a shell mode to test plugins without even connecting to any i
 
 ### Included plugins
 
-- IRC
-- Quote
+- IRC - Connect to a IRC server
+- Quote - Quotes
+- Poll - Voting system
 - Relay - Relay between servers and/or channels
 - Users - User management
+- Log - Log everything said in a channel
+- GCalc - Execute a expression using google calculator
+- Announce - Send message to a channel automatically in a certain amount of time
+- DNS - Perform DNS, RDNS and whois lookups
+- NickServ - Log into NickServ
+- Security - Hashes, rot13, and morse code
+- Random - Pick a random value from a list, yes or no, coinflip
+- URL - Dpaste, pastie, bitly, tinyurl, isgd
 - Bank - Points system
+
+#### Other features
+
+- Piping commands together
+
+    .help | pastie
 
 ### Support
 
