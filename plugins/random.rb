@@ -7,7 +7,7 @@ class Random
       'yesno' => [:yesno, 0],
       'headstails' => [:coinflip, 0],
       'coinflip' => [:coinflip, 0],
-      'dice' => [:dice, 0],
+      'dice' => [lambda { |e| "#{rand(6) + 1}" }, 0],
     }
   end
   
@@ -22,10 +22,6 @@ class Random
   
   def coinflip(e)
     random(e, ['heads', 'tails'])
-  end
-  
-  def dice(e)
-    "#{rand(6) + 1}"
   end
 end
 

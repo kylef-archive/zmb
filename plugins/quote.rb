@@ -38,7 +38,7 @@ class Quote
       'quote-del' => [:del_command, 1, { 
         :help => 'Delete a quote by id',
         :example => '7'}],
-      'quote-count' =>[:count_command, 0, {
+      'quote-count' =>[lambda { |e| "#{count} quotes" }, 0, {
         :help => 'Show amount of quotes' }],
       'quote-last' => [:last_command, 0, { :help => 'Show the last quote' }],
       'quote-search' => [:search_command, 1, {
@@ -75,10 +75,6 @@ class Quote
     else
       "no quote found with id=#{id}"
     end
-  end
-  
-  def count_command(e)
-    "#{count} quotes"
   end
   
   def last_command(e)

@@ -92,7 +92,13 @@ class Commands
     end
     
     begin
-      c[0].send(c[1], e, *args)
+      if c[1].class == Symbol then
+        c[0].send(c[1], e, *args)
+      elsif c[1].class == Proc then
+          c[1].call(e, *args)
+      else
+        "Bad command definition"
+      end
     rescue ArgumentError
       'incorrect arguments'
     rescue Exception
@@ -127,14 +133,14 @@ class Commands
       'cc' => [:control_command, 1, { :permission => 'admin' }],
       'eval' => [:evaluate, 1, { :permission => 'admin' }],
       'ieval' => [:instance_evaluate, 2, { :permission => 'admin' }],
-      'count' => :count,
+      'count' => lambda { |e, data| "#{data.split_seperators.size}" },
       'grep' => [:grep, 2],
       'not' => [:not_command, 2],
       'tail' => :tail,
       'echo' => [:echo, 1, { :example => 'Hello, {username}' }],
-      'reverse' => :reverse,
-      'first' => :first,
-      'last' => :last,
+      'reverse' => lambda { |e, data| data.reverse },
+      'first' => lambda { |e, data| data.split_seperators.first },
+      'last' => lambda { |e, data| data.split_seperators.last },
       'sub' => [:sub, 3, {
         :help => 'Replace all occurances of a pattern',
         :usage => 'pattern replacement data',
@@ -143,10 +149,10 @@ class Commands
         :help => 'Returns a copy of str with the characters in from_str replaced by the corresponding characters in to_str',
         :usage => 'from_str to_str data',
         :example => 'aeiou * hello' }],
-      'downcase' => :downcase,
-      'upcase' => :upcase,
-      'swapcase' => :swapcase,
-      'capitalize' => :capitalize,
+      'downcase' => lambda { |e, data| data.downcase },
+      'upcase' => lambda { |e, data| data.upcase },
+      'swapcase' => lambda { |e, data| data.swapcase },
+      'capitalize' => lambda { |e, data| data.capitalize },
     }
   end
   
@@ -226,10 +232,6 @@ class Commands
     end
   end
   
-  def count(e, data)
-    "#{data.split_seperators.size}"
-  end
-  
   def grep(e, search, data)
     data.split_seperators.reject{ |d| not d.include?(search) }.join(', ')
   end
@@ -258,40 +260,12 @@ class Commands
     "#{data}"
   end
   
-  def reverse(e, data)
-    data.reverse
-  end
-  
-  def first(e, data)
-    data.split_seperators.first
-  end
-  
-  def last(e, data)
-    data.split_seperators.last
-  end
-  
   def sub(e, pattern, replacement, data)
     data.gsub(pattern, replacement)
   end
   
   def tr(e, from_str, to_str, data)
     data.tr(from_str, to_str)
-  end
-  
-  def downcase(e, data)
-    data.downcase
-  end
-  
-  def upcase(e, data)
-    data.upcase
-  end
-  
-  def swapcase(e, data)
-    data.swapcase
-  end
-  
-  def capitalize(e, data)
-    data.capitalize
   end
 end
 

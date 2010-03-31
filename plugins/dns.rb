@@ -6,14 +6,10 @@ class DNS
   
   def commands
     {
-      'dns' => :dns,
+      'dns' => lambda { |e, host| Resolv.new.getaddress(host) },
       'rdns' => :rdns,
       'whois' => [:whois, 1, { :help => 'perform a whois on a domain' }],
     }
-  end
-  
-  def dns(e, host)
-    Resolv.new.getaddress(host)
   end
   
   def rdns(e, ip)

@@ -69,11 +69,11 @@ class Security
         :example => '.... . .-.. .-.. --- / .-- --- .-. .-.. -..' }],
       
       'rot13' => :rot13,
-      'sha1' => [:sha1, 1, { :help => 'Create a sha1 hash of some text' }],
-      'sha256' => [:sha256, 1, { :help => 'Create a sha256 hash of some text' }],
-      'md5' => [:md5, 1, { :help => 'Create a md5 hash of some text' }],
-      'base64' => [:base64, 1, { :help => '' }],
-      'decode64' => [:decode64, 1, { :help => '' }],
+      'sha1' => [lambda { |e, data| Digest::SHA1.hexdigest(data) }, 1, { :help => 'Create a sha1 hash of some text' }],
+      'sha256' => [lambda { |e, data| Digest::SHA256.hexdigest(data) }, 1, { :help => 'Create a sha256 hash of some text' }],
+      'md5' => [lambda { |e, data| Digest::MD5.hexdigest(data) }, 1, { :help => 'Create a md5 hash of some text' }],
+      'base64' => [lambda { |e, data| Base64.b64encode(data) }, 1, { :help => '' }],
+      'decode64' => [lambda { |e, data| Base64.decode64(data) }, 1, { :help => '' }],
     }
   end
   
@@ -87,26 +87,6 @@ class Security
   
   def rot13(e, data)
     data.tr('A-Ma-mN-Zn-z', 'N-Zn-zA-Ma-m')
-  end
-  
-  def sha1(e, data)
-    Digest::SHA1.hexdigest(data)
-  end
-  
-  def sha256(e, data)
-    Digest::SHA256.hexdigest(data)
-  end
-  
-  def md5(e, data)
-    Digest::MD5.hexdigest(data)
-  end
-  
-  def base64(e, data)
-    Base64.b64encode(data)
-  end
-  
-  def decode64(e, data)
-    Base64.decode64(data)
   end
 end
 
