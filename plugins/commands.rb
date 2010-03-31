@@ -126,6 +126,7 @@ class Commands
       'which' => [:which, 1, { :help => 'Find which plugin handles a command' }],
       'cc' => [:control_command, 1, { :permission => 'admin' }],
       'eval' => [:evaluate, 1, { :permission => 'admin' }],
+      'ieval' => [:instance_evaluate, 2, { :permission => 'admin' }],
       'count' => :count,
       'grep' => [:grep, 2],
       'not' => [:not_command, 2],
@@ -208,6 +209,18 @@ class Commands
   def evaluate(e, string)
     begin
       "#{eval string}"
+    rescue Exception
+      "#{$!.message}\n#{$!.inspect}"
+    end
+  end
+  
+  def instance_evaluate(e, inst, string)
+    begin
+      if @delegate.instances.has_key?(inst) then
+        "#{@delegate.instances[inst].instance_eval string}"
+      else
+        "#{inst}: No such instance"
+      end
     rescue Exception
       "#{$!.message}\n#{$!.inspect}"
     end
