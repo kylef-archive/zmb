@@ -28,11 +28,15 @@ class Relay
       'relays' => [:relays_command, 0, {
         :help => 'Show all relays' }],
       'relay-add' => [:add_command, 2, {
+        :permission => 'admin',
         :help => 'Add a relay',
-        :permission => 'admin' }],
+        :usage => 'instance:channel instance:channel',
+        :example => 'efnet:#zmb efnet:#zmb2' }],
       'relay-del' => [:del_command, 1, {
+        :permission => 'admin'
         :help => 'Delete a relay',
-        :permission => 'admin' }],
+        :usage => 'instance:channel'
+        :example => 'efnet:#zmb' }],
     }
   end
   
@@ -68,7 +72,7 @@ class Relay
 end
 
 Plugin.define do
-  name "relay"
-  description "This plugin allows you to relay messages from one channel/server to another."
+  name 'relay'
+  description 'This plugin allows you to relay messages from one channel/server to another.'
   object Relay
 end

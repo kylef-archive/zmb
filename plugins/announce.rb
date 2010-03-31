@@ -55,13 +55,21 @@ class Announce
       'announcements' => [:announcements, 0, {
         :permission => 'admin',
         :help => 'List all the id\'s for' }],
-      'announcement' => [:announcement, 1, { :permission => 'admin' }],
+      'announcement' => [:announcement, 1, {
+        :permission => 'admin',
+        :help => 'Display infomation about a announcement',
+        :usage => 'id',
+        :example => '1' }],
       'announce' => [:announce, 4, {
         :permission => 'admin',
         :help => 'Add a announcement',
         :usage => 'instance location interval message',
         :example => 'efnet #zmb 600 Check github for the latest updates!' }],
-      'announce-del' => [:announce_del, 1, { :permission => 'admin' }],
+      'announce-del' => [:announce_del, 1, {
+        :permission => 'admin',
+        :help => 'Delete a announcement',
+        :usage => 'id',
+        :example => '1' }],
     }
   end
   

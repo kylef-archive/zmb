@@ -12,9 +12,17 @@ class Alias
   
   def commands
     {
-      'alias' => [:add, 2, { :permission => 'admin' }],
-      'unalias' => [:del, 1, { :permission => 'admin' }],
-      'aliases' => [:aliases, 0, { :permission => 'admin' }]
+      'alias' => [:add, 2, {
+        :permission => 'admin',
+        :help => 'Create a alias',
+        :example => 'hello? .echo Hello!' }],
+      'unalias' => [:del, 1, {
+        :permission => 'admin',
+        :help => 'Remove a alias',
+        :usage => 'hello?' }],
+      'aliases' => [:aliases, 0, {
+        :permission => 'admin',
+        :help => 'List all aliases' }],
     }
   end
   
