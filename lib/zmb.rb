@@ -7,6 +7,7 @@ rescue LoadError
   gem 'json'
 end
 
+require 'zmb/utils'
 require 'zmb/plugin'
 require 'zmb/settings'
 require 'zmb/event'

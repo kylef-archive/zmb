@@ -288,19 +288,7 @@ class Users
   
   def seen(e, username)
     if user = user!(username) and user.seen then
-      diff = Time.now - user.seen
-      
-      if diff < 60 then
-        msg = "#{Integer(diff)} seconds ago"
-      elsif diff < 3600 then
-        msg = "#{Integer(diff/60)} minutes ago"
-      elsif diff < 86400 then
-        msg = "about #{Integer(diff/3600)} hours ago"
-      else
-        msg = "#{Integer(diff/86400)} days ago"
-      end
-      
-      "#{username} last seen #{msg}"
+      "#{username} last seen #{user.seen.since_words}"
     else
       "#{username} has never been seen"
     end

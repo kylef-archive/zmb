@@ -1,20 +1,6 @@
 class Random
   def initialize(sender, settings); end
   
-  def split_seperators(data)
-    if data.class == Array then
-      data
-    elsif data.include?("\n") then
-      data.split("\n").map{ |arg| arg.strip }
-    elsif data.include?(',') then
-      data.split(',').map{ |arg| arg.strip }
-    elsif data.include?(' ') then
-      data.split(' ')
-    else
-      data
-    end
-  end
-  
   def commands
     {
       'random' => :random,
@@ -26,7 +12,7 @@ class Random
   end
   
   def random(e, args)
-    items = split_seperators(args)
+    items = args.split_seperators
     "#{items[rand(items.size)]}"
   end
   

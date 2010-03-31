@@ -119,18 +119,6 @@ class Commands
     @cmds = @cmds.reject{ |k,v| v[0] == instance }
   end
   
-  def split_seperators(data)
-    if data.include?("\n") then
-      data.split("\n").map{ |arg| arg.strip }
-    elsif data.include?(',') then
-      data.split(',').map{ |arg| arg.strip }
-    elsif data.include?(' ') then
-      data.split(' ')
-    else
-      data
-    end
-  end
-  
   def commands
     {
       'help' => :help,
@@ -226,19 +214,19 @@ class Commands
   end
   
   def count(e, data)
-    "#{split_seperators(data).size}"
+    "#{data.split_seperators.size}"
   end
   
   def grep(e, search, data)
-    split_seperators(data).reject{ |d| not d.include?(search) }.join(', ')
+    data.split_seperators.reject{ |d| not d.include?(search) }.join(', ')
   end
   
   def not_command(e, search, data)
-    split_seperators(data).reject{ |d| d.include?(search) }.join(', ')
+    data.split_seperators.reject{ |d| d.include?(search) }.join(', ')
   end
   
   def tail(e, data)
-    split_seperators(data).reverse[0..2].join(', ')
+    data.split_seperators.reverse[0..2].join(', ')
   end
   
   def echo(e, data)
@@ -250,11 +238,11 @@ class Commands
   end
   
   def first(e, data)
-    split_seperators(data).first
+    data.split_seperators.first
   end
   
   def last(e, data)
-    split_seperators(data).last
+    data.split_seperators.last
   end
   
   def sub(e, pattern, replacement, data)
