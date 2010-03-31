@@ -131,7 +131,7 @@ class Commands
       'grep' => [:grep, 2],
       'not' => [:not_command, 2],
       'tail' => :tail,
-      'echo' => :echo,
+      'echo' => [:echo, 1, { :example => 'Hello, {username}' }],
       'reverse' => :reverse,
       'first' => :first,
       'last' => :last,
@@ -243,6 +243,18 @@ class Commands
   end
   
   def echo(e, data)
+    data.sub!('{time}', Time.now.strftime('%H:%M:%S'))
+    data.sub!('{day}', Time.now.strftime('%d'))
+    data.sub!('{weekday}', Time.now.strftime('%A'))
+    data.sub!('{timezone}', Time.now.strftime('%Z'))
+    data.sub!('{month}', Time.now.strftime('%B'))
+    data.sub!('{year}', Time.now.strftime('%Y'))
+    data.sub!('{username}', e.user.username) if e.respond_to?('user') and e.user.respond_to?('username')
+    data.sub!('{points}', "#{e.bank.balance}") if e.respond_to?('bank') and e.bank.respond_to?('balance')
+    data.sub!('{channel}', e.channel) if e.respond_to?('channel')
+    data.sub!('{name}', e.name) if e.respond_to?('name')
+    data.sub!('{userhost}', e.userhost) if e.respond_to?('userhost')
+    
     "#{data}"
   end
   
