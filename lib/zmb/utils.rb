@@ -59,6 +59,20 @@ class Array
   end
 end
 
+class Hash
+  def to_query_string
+    map { |k, v| 
+      if v.instance_of?(Hash)
+        v.map { |sk, sv|
+          "#{k}[#{sk}]=#{sv}"
+        }.join('&')
+      else
+        "#{k}=#{v}"
+      end
+    }.join('&')
+  end
+end
+
 class Time
   def since
     Time.now - self
@@ -80,6 +94,8 @@ class Time
       s -= amount * t
       m << "#{amount} #{word.plural(amount)}" unless amount == 0
     end
+    
+    m << 'now' if m.size == 0
     
     m.list_join + (future ? ' left' : '')
   end

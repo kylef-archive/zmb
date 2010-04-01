@@ -5,21 +5,9 @@ require 'cgi'
 class URL
   def initialize(sender, s) ;end
   
-  def to_query_string(h)
-    h.map { |k, v| 
-      if v.instance_of?(Hash)
-        v.map { |sk, sv|
-          "#{k}[#{sk}]=#{sv}"
-        }.join('&')
-      else
-        "#{k}=#{v}"
-      end
-    }.join('&')
-  end
-  
   def http(host, port=80, path='/', type='get', query_string={})
     http = Net::HTTP.new(host, port)
-    query_string = to_query_string(query_string) if query_string.class == Hash
+    query_string = query_string.to_query_string if query_string.class == Hash
     http.start do |h|
       case type
         when 'get' then h.get(path + '?' + query_string)
