@@ -4,33 +4,86 @@ end
 
 class User
   require 'digest/sha1'
+  require 'time'
   
-  attr_accessor :username, :password, :userhosts, :permissions, :seen, :users
+  attr_accessor :settings, :users
   
-  def to_json(*a)
-    {'username' => @username, 'password' => @password, 'userhosts' => @userhosts, 'permissions' => @permissions, 'seen' => @seen}.to_json(*a)
+  def initialize(s)
+    @settings = defaults.merge(s)
+    @settings['seen'] = Time.parse(@settings['seen']) if @settings['seen'].class == String
   end
   
-  def self.create_settings(data)
-    require 'time'
-    user = new(data['username'])
-    user.raw_password = data['password']
-    user.userhosts = data['userhosts'] if data.has_key?('userhosts')
-    user.permissions = data['permissions'] if data.has_key?('permissions')
-    user.seen = Time.parse(data['seen']) if data.has_key?('seen') and data['seen']
-    user
+  def defaults
+    {
+      'username' => 'username',
+      'password' => nil,
+      'email' => nil,
+      'userhosts' => [],
+      'permissions' => [],
+      'seen' => Time.now,
+      'location' => '',
+      'active' => true,
+    }
+  end
+  
+  def username
+    @settings['username']
+  end
+  
+  def raw_password=(new_password)
+    @settings['password'] = new_password
+  end
+  
+  def password=(new_password)
+    @settings['password'] = Digest::SHA1.hexdigest(new_password)
+  end
+  
+  def password?(check_password)
+    @settings['password'] != nil and @settings['password'] == Digest::SHA1.hexdigest(check_password)
+  end
+  
+  def email
+    @settings['email']
+  end
+  
+  def email=(e)
+    @settings['email'] = e
+  end
+  
+  def userhosts
+    @settings['userhosts']
+  end
+  
+  def permissions
+    @settings['permissions']
+  end
+  
+  def seen
+    @settings['seen']
+  end
+  
+  def location
+    @settings['location']
+  end
+  
+  def location=(l)
+    @settings['location'] = l
+  end
+  
+  def saw
+    @settings['seen'] = Time.now
+  end
+  
+  def activate
+    @settings['active'] = true
+  end
+  
+  def deactivate
+    @settings['active'] = false
   end
   
   def to_s
-    @username
-  end
-  
-  def initialize(username=nil, password=nil, userhost=nil)
-    @username = username
-    @password = Digest::SHA1.hexdigest(password) if password
-    @userhosts = Array.new
-    @userhosts << userhost if userhost
-    @permissions = Array.new
+    username
   end
   
   def concat(other_user)
@@ -38,40 +91,44 @@ class User
     @userhosts += other_user.userhosts
   end
   
-  def raw_password=(new_password)
-    @password = new_password
-  end
-  
-  def password=(new_password)
-    @password = Digest::SHA1.hexdigest(new_password)
-  end
-  
-  def password?(check_password)
-    @password != nil and @password == Digest::SHA1.hexdigest(check_password)
+  def anonymous?
+    false
   end
   
   def authenticated?
     true
   end
   
+  def active?
+    @settings['active']
+  end
+  
   def admin?
-    @permissions.include?('owner') or @permissions.include?('admin')
+    permissions.include?('admin')
   end
   
   def permission?(permission)
-    admin? or @permissions.include?(permission)
+    admin? or permissions.include?(permission)
   end
   
   def permit(permission)
-    @permissions << permission
+    permissions << permission
   end
   
   def deny(permission)
-    @permissions.delete(permission)
+    permissions.delete(permission)
   end
 end
 
 class AnonymousUser
+  def to_s
+    'nobody'
+  end
+  
+  def anonymous?
+    true
+  end
+  
   def authenticated?
     false
   end
@@ -86,37 +143,42 @@ class AnonymousUser
 end
 
 class Users
-  attr_accessor :users
+  attr_accessor :users, :user_defaults
   
   def initialize(sender, s={})
     @delegate = sender
-    @users = s['users'].map{ |user| User.create_settings(user) } if s.has_key?('users')
-    @users = Array.new if not @users
+    @users = Array.new
+    @user_defaults = Hash.new
+    @users = s['users'].map{ |user| User.new(user) } if s.has_key?('users')
+    @user_defaults = s['user_defaults'] if s.has_key?('user_defaults')
   end
   
   def settings
-    { 'users' => @users }
+    { 'users' => @users.map{ |u| u.settings }, 'user_defaults' => @user_defaults }
   end
   
-  def user!(search)
-    @users.find{|user| user.userhosts.include?(search) or user.username == search}
+  def user!(search, active=nil)
+    if active == nil then
+      @users.find{ |user| user.userhosts.include?(search) or user.username == search }
+    else
+      @users.find{ |user| (user.userhosts.include?(search) or user.username == search) and user.active? == active }
+    end
   end
   
-  def user(search)
-    user!(search) or AnonymousUser.new
+  def user(search, active=nil)
+    user!(search, active) or AnonymousUser.new
   end
   
   def pre_event(sender, e)
-    e.user = user(e.userhost) if not e.user and e.respond_to?('userhost')
-    e.user.seen = Time.now if e.user.respond_to?('seen=')
     e.users = self
-    
-    #e.instance_variable_set(:@user, user(e.userhost)) if e.respond_to?('userhost')
-    #def e.user; user(e.userhost); end
+    e.user = user(e.userhost, true) if not e.user and e.respond_to?('userhost')
+    e.user.saw
   end
   
   def commands
     {
+      'activate' => [:activate, 1, { :help => 'Activate a user account' }],
+      'deactivate' => [:deactivate, 1, { :help => 'Deactivate a user account' }],
       'meet' => [:meet, 1, { :help => 'Meet a user' }],
       'forget' => [:forget, 1, {
         :help => 'Forget about a user',
@@ -150,7 +212,7 @@ class Users
       'logout' => [:logout, 0, {
         :permission => 'authenticated',
         :help => 'Logout from your account, this will remove your current userhost from your account.' }],
-      'whoami' => [:whoami, 0, { :help => 'Who are you logged in as?' }],
+      'whoami' => [lambda { |e| "#{e.user}" }, 0, { :help => 'Who are you logged in as?' }],
       'userhosts' => [:userhosts, 0, {
         :permission => 'authenticated',
         :help => 'List all the userhosts associated with your account.' }],
@@ -171,16 +233,53 @@ class Users
         :help => 'Execute a command as another user.',
         :usage => 'user command',
         :example => 'zynox whoami' }],
+      'location' => [:location, 1, {
+        :permission => 'authenticated',
+        :help => 'Set your location' }],
+      'email' => [:email, 1, {
+        :permission => 'authenticated',
+        :help => 'Set your email' }],
+      'user-defaults' => [:user_defaults_command, 0],
+      'user-default' => [:set_default, 2, {
+        :permission => 'admin',
+        :help => 'Set a user default',
+        :usage => 'key value',
+        :example => 'active false' }],
+      'rm-user-default' => [:del_default, 1, {
+        :permission => 'admin',
+        :help => 'Remove a user default',
+        :usage => 'key',
+        :example => 'active' }],
     }
+  end
+  
+  def activate(e, username)
+    if user = user!(username) then
+      user.activate
+      "#{username} active"
+    else
+      "#{username} does not exist"
+    end
+  end
+  
+  def deactivate(e, username)
+    if user = user!(username) then
+      user.deactivate
+      "#{username} deactivated"
+    else
+      "#{username} does not exist"
+    end
   end
   
   def meet(e, username=nil)
     username = e.name if not e.user.admin?
     
-    if not user!(username) then
-      @users << user = User.new(username)
+    if username == 'nobody' then
+      "nobody is a excluded name"
+    elsif not user!(username) then
+      @users << user = User.new(@user_defaults.merge({'username' => username}))
       user.userhosts << e.userhost if not e.user.admin? and e.respond_to?('userhost')
-      "Hello #{e.user}"
+      "Hello #{user}"
     else
       "You already have an account #{e.user}"
     end
@@ -254,10 +353,6 @@ class Users
     "userhost #{e.userhost} removed from your account."
   end
   
-  def whoami(e)
-    e.user.authenticated? ? "#{e.user}" : 'nobody'
-  end
-  
   def userhosts(e)
     e.user.userhosts.empty? ?  "#{e.user} has no userhosts" : e.user.userhosts.join(', ')
   end
@@ -306,6 +401,46 @@ class Users
     else
       e.user = user
     end
+  end
+  
+  def location(e, loct=nil)
+    if loct then
+      e.user.location = loct
+      "location set to #{e.user.location}"
+    else
+      e.user.location
+    end
+  end
+  
+  def email(e, em=nil)
+    if em then
+      e.user.email = em
+      "email set to #{e.user.email}"
+    else
+      e.user.email
+    end
+  end
+  
+  def user_defaults_command(e)
+    user_defaults.map{ |k,v| "#{k}: #{v}" }.join("\n")
+  end
+  
+  def set_default(e, key, value)
+    value = case value
+      when 'true' then true
+      when 'false' then false
+      when 'yes' then true
+      when 'no' then false
+      else value
+    end
+    
+    user_defaults[key] = value
+    "#{key} added to defaults"
+  end
+  
+  def del_default(e, key)
+    user_defaults.delete(key)
+    "#{key} removed from defaults"
   end
 end
 
