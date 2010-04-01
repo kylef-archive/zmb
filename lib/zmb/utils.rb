@@ -57,6 +57,17 @@ class Array
   def list_join
     (size > 2 ? [slice(0..-2).join(', '), last] : self).join(' and ')
   end
+  
+  def list_count
+    items = {}
+    
+    each do |i|
+      items[i] = 0 unless items.has_key?(i)
+      items[i] += 1
+    end
+    
+    items.map{ |i, c| c == 1 ? i : "#{i} (#{c})" }.join(', ')
+  end
 end
 
 class Hash

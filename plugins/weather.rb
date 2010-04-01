@@ -6,19 +6,19 @@ class Weather
   
   def commands
     {
-      'weather' => [:weather, 0],
+      'weather' => [:weather, 1],
     }
   end
   
   def weather(e, location=nil)
-    if location == nil then
-      if not e.user.authenicated?
+    if not location then
+      if not (e.respond_to?('user') and e.user and e.user.authenticated?) then
         return 'Please supply a location'
-      elsif not e.user.location then
+      elsif e.user.location and e.user.location != '' then
+        location = e.user.location
+      else
         return "No location set for #{e.user}"
       end
-      
-      location = e.user.location
     end
     
     location = location.sub(' ', '+')
