@@ -34,8 +34,12 @@ class Commands
     
     if e.message[0, @cc.length] == @cc then
       line = e.message[@cc.length..-1].clone
+    elsif e.delegate.respond_to?('nick') and e.message[0, (e.delegate.nick.length+2)] == (e.delegate.nick + ': ') then
+      line = e.message[(e.delegate.nick.length+2)..-1].clone
     elsif e.private? then
       line = e.message.clone
+    else
+      return
     end
     
     # Encode escaped quotation marks and pipes
