@@ -12,10 +12,7 @@ class GCalc
   end
   
   def calc(e, search)
-    http = Net::HTTP.new('www.google.com', 80)
-    resp, body = http.start do |h|
-        h.get("/search?q=#{URI.escape(search, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]"))}")
-    end
+    resp, body = 'http://www.google.com/search'.get({ :q => URI.escape(search, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]")) })
     
     if resp.code == '200' then
       if body.include?('<img src=/images/calc_img.gif width=40 height=30 alt="">')

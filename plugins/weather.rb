@@ -22,8 +22,7 @@ class Weather
     end
     
     location = location.sub(' ', '+')
-    url = "http://www.google.com/ig/api?weather=#{location}"
-    xml_data = Net::HTTP.get_response(URI.parse(url)).body
+    xml_data = 'http://www.google.com/ig/api'.get({ :weather => location }).body
     doc = REXML::Document.new(xml_data)
     
     info = doc.root.elements['weather/forecast_information']

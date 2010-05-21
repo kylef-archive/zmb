@@ -5,25 +5,6 @@ require 'cgi'
 class URL
   def initialize(sender, s) ;end
   
-  def http(host, port=80, path='/', type='get', query_string={})
-    http = Net::HTTP.new(host, port)
-    query_string = query_string.to_query_string if query_string.class == Hash
-    http.start do |h|
-      case type
-        when 'get' then h.get(path + '?' + query_string)
-        when 'post' then h.post(path, query_string)
-        when 'head' then h.head(path + '?' + query_string)
-      end
-    end
-  end
-  
-  def http_uri(url, type='get')
-    u = URI.parse(url)
-    u.path = '/' if u.path.size == 0
-    u.query = '' if not u.query
-    http(u.host, u.port, u.path, type, u.query)
-  end
-  
   def commands
     {
       'head' => :head,
@@ -38,7 +19,7 @@ class URL
   end
   
   def head(e, url)
-    resp = http_uri(url, 'head')
+    resp = url.http('head')
     
     if resp.code == "301" or resp.code == "302" then
       "#{resp.code} - #{resp['location']}"
@@ -50,33 +31,29 @@ class URL
   end
   
   def get(e, url)
-    resp, body = http_uri(url)
-    body
+    url.get.body
   end
   
   def bitly(e, link)
-    resp, body = http('bit.ly', 80, '/api', 'get', { :url => link })
-    body
+    'http://bit.ly/api'.get({ :url => link }).body
   end
   
   def isgd(e, link)
-    resp, body = http('is.gd', 80, '/api.php', 'get', { :longurl => link })
-    body
+    'http://is.gd/api.php'.get({ :longurl => link }).body
   end
   
   def tinyurl(e, link)
-    resp, body = http('tinyurl.com', 80, '/api-create.php', 'get', { :url => link })
-    body
+    'http://tinyurl.com/api-create.php'.get({ :url => link }).body
   end
   
   def dpaste(e, data)
-    resp, body = http('dpaste.de', 80, '/api/', 'post', { :content => data })
+    resp, body = 'http://dpaste.de/api/'.post({ :content => data })
     body = body[1..-2] if body =~ /^".+"$/ # Remove any quotation marks if there are any
     body
   end
   
   def pastie(data, is_private=false, format='plaintext')
-    resp, body = http('pastie.org', 80, '/pastes', 'post', { :paste => {
+    resp, body = 'http://pastie.org/pastes'.post({ :paste => {
       :body => CGI.escape(data),
       :parser => format,
       :restricted => is_private,

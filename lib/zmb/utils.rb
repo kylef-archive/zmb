@@ -43,6 +43,30 @@ class String
       self + 's'
     end
   end
+  
+  def http(type, q=nil)
+    u = URI.parse(self)
+    
+    http = Net::HTTP.new(u.host, u.port)
+    q = q.to_query_string if q.class == Hash
+    q = u.query unless q
+    
+    http.start do |h|
+      case type
+        when 'get' then h.get(u.path + '?' + q)
+        when 'post' then h.post(u.path, q)
+        when 'head' then h.head(u.path + '?' + q)
+      end
+    end
+  end
+  
+  def get(q={})
+    http('get', q)
+  end
+  
+  def post(q={})
+    http('post', q)
+  end
 end
 
 class Array
