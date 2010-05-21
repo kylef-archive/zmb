@@ -14,10 +14,14 @@ class Timer
   end
 
   def fire(sender)
-    if @data then
-      @delegate.send @symbol, @data
-    else
-      @delegate.send @symbol
+    begin
+      if @data then
+        @delegate.send @symbol, @data
+      else
+        @delegate.send @symbol
+      end
+    rescue Exception
+      
     end
 
     if not @repeat
