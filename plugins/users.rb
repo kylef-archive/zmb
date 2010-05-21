@@ -13,6 +13,29 @@ class User
     @settings['seen'] = Time.parse(@settings['seen']) if @settings['seen'].class == String
   end
   
+  def self.networks
+    {
+      'delicious' => ['Delicious', 'http://delicious.com/%s'],
+      'digg' => ['Digg.com', 'http://digg.com/users/%s'],
+      'django' => ['Django People', 'http://djangopeople.net/%s'],
+      'facebook' => ['Facebook', 'http://www.facebook.com/profile.php?id=%s'],
+      'flickr' => ['Flickr', 'http://www.flickr.com/photos/%s/'],
+      'github' => ['GitHub', 'http://github.com/%s'],
+      'pandora' => ['Pandora', 'http://pandora.com/people/%s'],
+      'technorati' => ['Technorati', 'http://technorati.com/people/technorati/%s'],
+      'tumblr' => ['Tumblr', 'http://%s.tumblr.com'],
+      'twitter' => ['Twitter', 'http://twitter.com/%s'],
+      'lastfm' => ['Last.fm', 'http://www.last.fm/user/%s'],
+      'xfire' => ['Xfire', 'http://www.xfire.com/profile/%s/'],
+      'ustream' => ['Ustream.TV', 'http://www.ustream.tv/%s'],
+      'youtube' => ['YouTube', 'http://www.youtube.com/user/%s'],
+      'steam' => ['Steam', 'http://steamcommunity.com/id/%s/'],
+      
+      'netforce' => ['Net-Force', 'http://www.net-force.nl/members/view/%s/'],
+      'hts' => ['Hack This Site!', 'http://www.hackthissite.org/user/view/%s/'],
+    }
+  end
+  
   def defaults
     {
       'username' => 'username',
@@ -23,6 +46,7 @@ class User
       'seen' => Time.now,
       'location' => '',
       'active' => true,
+      'networks' => Hash.new,
     }
   end
   
@@ -68,6 +92,27 @@ class User
   
   def location=(l)
     @settings['location'] = l
+  end
+  
+  def network?(n)
+    @settings['networks'].has_key?(n)
+  end
+  
+  def network(n)
+    return nil if not self.class.networks.has_key?(n)
+    self.class.networks[n][1].sub('%s', network!(n))
+  end
+  
+  def network!(n)
+    @settings['networks'][n]
+  end
+  
+  def networks
+    @settings['networks'].keys
+  end
+  
+  def add_network(n, info)
+    @settings['networks'][n] = info
   end
   
   def saw
@@ -250,6 +295,12 @@ class Users
         :help => 'Remove a user default',
         :usage => 'key',
         :example => 'active' }],
+      'network' => [:network, 2, {
+        :permission => 'authenticated',
+        :usage => 'lastfm zynox' }],
+      'networks' => [:networks, 0, { :help => 'List all availible networks' }],
+      'profile' => [:profile, 1, {
+        :permission => 'authenticated' }],
     }
   end
   
@@ -441,6 +492,33 @@ class Users
   def del_default(e, key)
     user_defaults.delete(key)
     "#{key} removed from defaults"
+  end
+  
+  def network(e, n, value=nil)
+    if value then
+      e.user.add_network(n, value)
+      "Username for #{User.networks[n][0]} set to #{value}" if User.networks.has_key?(n)
+    else
+      if e.user.network?(n) then
+        "#{n}: #{e.user.network(n)} (#{e.user.network!(n)})"
+      else
+        "No username set for #{n}"
+      end
+    end
+  end
+  
+  def networks(e)
+    User.networks.keys.join(', ')
+  end
+  
+  def profile(e, username=nil)
+    username = e.user.username unless username
+    
+    if (user = user!(username)) then
+      user.networks.reject{ |n| not User.networks.has_key?(n) }.map{ |n| "#{User.networks[n][0]}: #{user.network(n)}" }.join(', ')
+    else
+      "No such user"
+    end
   end
 end
 
