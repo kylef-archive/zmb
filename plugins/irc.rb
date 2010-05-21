@@ -62,7 +62,7 @@ class Event
 end
 
 class IrcConnection
-  attr_accessor :host, :port, :channels, :nick, :name, :realname, :password, :throttle
+  attr_accessor :delegate, :host, :port, :channels, :nick, :name, :realname, :password, :throttle
   
   def initialize(sender, s={})
     @delegate = sender
@@ -85,7 +85,7 @@ class IrcConnection
     @throttle = 10
     @throttle = s['throttle'] if s.has_key?('throttle')
     
-    sender.timer_add(Timer.new(self, :connect, 0.1, false)) if sender.running?
+    @delegate.timer_add(Timer.new(self, :connect, 0.1, false)) if sender.running?
   end
   
   def socket=(value)
@@ -195,7 +195,7 @@ class IrcConnection
   
   def disconnected(sender, socket)
     @socket = nil
-    sender.timer_add(Timer.new(self, :connect, @throttle))
+    @delegate.timer_add(Timer.new(self, :connect, @throttle))
   end
   
   def perform
