@@ -119,9 +119,11 @@ class Time
     s = s * -1 if future = (s < 0) # Is the time in the future?
     
     [
-      ['week', 604800],
-      ['day', 86400],
-      ['hour', 3600],
+      ['year',   60 * 60 * 24 * 365],
+      ['month',  60 * 60 * 24 * 30],
+      ['week',   60 * 60 * 24 * 7],
+      ['day',    60 * 60 * 24],
+      ['hour',   60 * 60],
       ['minute', 60],
       ['second', 1],
     ].each do |word, t|
