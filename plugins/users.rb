@@ -547,7 +547,12 @@ class Users
     user = user!(username)
     
     if user then
-      user.send(message)
+      if e.user.admin? then
+        user.send(message)
+      else
+        user.send("#{e.user.username}: message")
+      end
+      
       "message sent"
     else
       "no such user"
