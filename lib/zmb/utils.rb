@@ -1,4 +1,9 @@
 class String
+  def self.random(len=8)
+    characters = ('a'..'z').to_a + ('1'..'9').to_a
+    (1..len).map{ characters[rand(characters.size)] }.join
+  end
+  
   def split_seperators
     if include?("\n") then
       split("\n").map{ |arg| arg.strip }

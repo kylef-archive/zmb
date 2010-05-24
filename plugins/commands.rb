@@ -44,6 +44,19 @@ class Commands
     
     return if e.name[0..0] == '*'
     
+    line.sub!('{time}', Time.now.strftime('%H:%M:%S'))
+    line.sub!('{day}', Time.now.strftime('%d'))
+    line.sub!('{weekday}', Time.now.strftime('%A'))
+    line.sub!('{timezone}', Time.now.strftime('%Z'))
+    line.sub!('{month}', Time.now.strftime('%B'))
+    line.sub!('{year}', Time.now.strftime('%Y'))
+    line.sub!('{username}', e.user.username) if e.respond_to?('user') and e.user.respond_to?('username')
+    line.sub!('{points}', "#{e.bank.balance}") if e.respond_to?('bank') and e.bank.respond_to?('balance')
+    line.sub!('{channel}', e.channel) if e.respond_to?('channel')
+    line.sub!('{name}', e.name) if e.respond_to?('name')
+    line.sub!('{userhost}', e.userhost) if e.respond_to?('userhost')
+    line.sub!('{rand}', String.random)
+    
     # Encode escaped quotation marks and pipes
     escape.each{ |k,v| line.gsub!("\\" + k, v) }
     
@@ -251,18 +264,6 @@ class Commands
   end
   
   def echo(e, data)
-    data.sub!('{time}', Time.now.strftime('%H:%M:%S'))
-    data.sub!('{day}', Time.now.strftime('%d'))
-    data.sub!('{weekday}', Time.now.strftime('%A'))
-    data.sub!('{timezone}', Time.now.strftime('%Z'))
-    data.sub!('{month}', Time.now.strftime('%B'))
-    data.sub!('{year}', Time.now.strftime('%Y'))
-    data.sub!('{username}', e.user.username) if e.respond_to?('user') and e.user.respond_to?('username')
-    data.sub!('{points}', "#{e.bank.balance}") if e.respond_to?('bank') and e.bank.respond_to?('balance')
-    data.sub!('{channel}', e.channel) if e.respond_to?('channel')
-    data.sub!('{name}', e.name) if e.respond_to?('name')
-    data.sub!('{userhost}', e.userhost) if e.respond_to?('userhost')
-    
     "#{data}"
   end
   
