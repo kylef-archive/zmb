@@ -42,6 +42,8 @@ class Commands
       return
     end
     
+    return if e.name[0..0] == '*'
+    
     # Encode escaped quotation marks and pipes
     escape.each{ |k,v| line.gsub!("\\" + k, v) }
     
