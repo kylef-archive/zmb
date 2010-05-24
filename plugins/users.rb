@@ -47,6 +47,7 @@ class User
       'location' => '',
       'active' => true,
       'networks' => Hash.new,
+      'buffer' => [],
     }
   end
   
@@ -115,8 +116,16 @@ class User
     @settings['networks'][n] = info
   end
   
-  def saw
+  def saw(e=nil)
     @settings['seen'] = Time.now
+    
+    if e then
+      buffer.each do |message|
+        e.delegate.message(e.name, message)
+      end
+      
+      clear_buffer
+    end
   end
   
   def activate
@@ -162,6 +171,18 @@ class User
   
   def deny(permission)
     permissions.delete(permission)
+  end
+  
+  def buffer
+    @settings['buffer']
+  end
+  
+  def clear_buffer
+    @settings['buffer'] = []
+  end
+  
+  def send(message)
+    @settings['buffer'] << message
   end
 end
 
@@ -217,7 +238,7 @@ class Users
   def pre_event(sender, e)
     e.users = self
     e.user = user(e.userhost, true) if not e.user and e.respond_to?('userhost')
-    e.user.saw
+    e.user.saw(e)
   end
   
   def commands
@@ -301,6 +322,7 @@ class Users
       'networks' => [:networks, 0, { :help => 'List all availible networks' }],
       'profile' => [:profile, 1, {
         :permission => 'authenticated' }],
+      'message' => [:message, 2, { :permission => 'authenticated' }]
     }
   end
   
@@ -518,6 +540,17 @@ class Users
       user.networks.reject{ |n| not User.networks.has_key?(n) }.map{ |n| "#{User.networks[n][0]}: #{user.network(n)}" }.join(', ')
     else
       "No such user"
+    end
+  end
+  
+  def message(e, username, message)
+    user = user!(username)
+    
+    if user then
+      user.send(message)
+      "message sent"
+    else
+      "no such user"
     end
   end
 end
