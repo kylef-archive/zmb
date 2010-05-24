@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{zmb}
-  s.version = "0.2.1"
+  s.version = "0.3.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["kylef"]
-  s.date = %q{2010-03-18}
+  s.date = %q{2010-05-25}
   s.default_executable = %q{zmb}
   s.description = %q{ZMB, messenger bot}
   s.email = %q{inbox@kylefuller.co.uk}
@@ -31,11 +31,13 @@ Gem::Specification.new do |s|
      "lib/zmb/plugin.rb",
      "lib/zmb/settings.rb",
      "lib/zmb/timer.rb",
+     "lib/zmb/utils.rb",
      "plugins/alias.rb",
      "plugins/announce.rb",
      "plugins/autorejoin.rb",
      "plugins/bank.rb",
      "plugins/commands.rb",
+     "plugins/countdown.rb",
      "plugins/dns.rb",
      "plugins/file.rb",
      "plugins/gcalc.rb",
@@ -48,10 +50,13 @@ Gem::Specification.new do |s|
      "plugins/random.rb",
      "plugins/relay.rb",
      "plugins/security.rb",
+     "plugins/sed.rb",
      "plugins/system.rb",
      "plugins/url.rb",
      "plugins/usermodes.rb",
      "plugins/users.rb",
+     "plugins/vouch.rb",
+     "plugins/weather.rb",
      "test/helper.rb",
      "test/test_zmb.rb",
      "zmb.gemspec"
