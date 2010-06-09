@@ -197,7 +197,7 @@ class Commands
         :permission => 'admin',
         :help => 'Dynamically define a command',
         :usage => 'command arguments block',
-        :example => 'ping nil \"pong\"'
+        :example => 'ping nil "pong"'
       }],
       'undefine' => [:undefine, 1, {
         :permission => 'admin',
