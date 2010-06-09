@@ -224,7 +224,7 @@ class Commands
         h.join("\n")
       end
     else
-      cmds = @cmds.reject{ |k,v| ((kwargs = v.at(3)) and kwargs.has_key?(:permission)) and not e.user.permission?(kwargs[:permission]) }
+      cmds = @cmds.reject{ |k,v| (v.has_key?(:permission)) and not e.user.permission?(v[:permission]) }
       cmds.keys.join(', ')
     end
   end
