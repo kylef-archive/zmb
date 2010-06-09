@@ -91,30 +91,30 @@ class Commands
     
     c = @cmds[cmd]
     
-    if c[2] == 0 then
+    if c[:args] == 0 then
       args = Array.new
-    elsif args.size > c[2]
-      a = args.first c[2]-1 # Take one under amount of commands
-      a << args[c[2]-1..-1].join(' ')
+    elsif args.size > c[:args]
+      a = args.first c[:args]-1 # Take one under amount of commands
+      a << args[c[:args]-1..-1].join(' ')
       args = a
     end
     
     # User permissions
-    if (kwargs = c.at(3)) and kwargs.has_key?(:permission) then
+    if c.has_key?(:permission) then
       if not e.respond_to?('user')
         return 'user module not loaded'
-      elsif kwargs[:permission] == 'authenticated' then
+      elsif c[:permission] == 'authenticated' then
         return 'permission denied' if not e.user.authenticated?
-      elsif not e.user.permission?(kwargs[:permission])
+      elsif not e.user.permission?(c[:permission])
         return 'permission denied'
       end
     end
     
     begin
-      if c[1].class == Symbol then
-        c[0].send(c[1], e, *args)
-      elsif c[1].class == Proc then
-          c[1].call(e, *args)
+      if c.has_key?(:instance) and c.has_key?(:symbol) then
+        c[:instance].send(c[:symbol], e, *args)
+      elsif c.has_key?(:proc) then
+        c[:proc].call(e, *args)
       else
         "Bad command definition"
       end
@@ -132,16 +132,28 @@ class Commands
   def plugin_loaded(key, instance)
     if instance.respond_to?('commands') then
       instance.commands.each do |k,v|
-        v = [v] if v.class != Array
-        v.insert(0, instance)
-        v << 1 if v.size == 2 # add default command amount
-        @cmds[k] = v
+        @cmds[k] = {
+          :instance => instance,
+          :args => 1
+        }
+        
+        if v.class == Hash then
+          @cmds[k].merge(v)
+        else
+          v = [v] if v.class != Array
+          v.each do |item|
+            @cmds[k][:args] = item if item.class == Fixnum
+            @cmds[k].merge!(item) if item.class == Hash
+            @cmds[k][:symbol] = item if item.class == Symbol
+            @cmds[k][:proc] = item if item.class == Proc
+          end
+        end
       end
     end
   end
   
   def plugin_unloaded(key, instance)
-    @cmds = @cmds.reject{ |k,v| v[0] == instance }
+    @cmds = @cmds.reject{ |k,v| v[:instance] == instance }
   end
   
   def commands
@@ -179,10 +191,10 @@ class Commands
     if command then
       h = []
       
-      if @cmds.has_key?(command) and (kwargs = @cmds[command].at(3)).respond_to?('has_key?') then
-        h << "#{command}: #{kwargs[:help]}" if kwargs.has_key?(:help)
-        h << "Usage: #{command} #{kwargs[:usage]}" if kwargs.has_key?(:usage)
-        h << "Example: #{command} #{kwargs[:example]}" if kwargs.has_key?(:example)
+      if @cmds.has_key?(command) then
+        h << "#{command}: #{@cmds[command][:help]}" if @cmds[command].has_key?(:help)
+        h << "Usage: #{command} #{@cmds[command][:usage]}" if @cmds[command].has_key?(:usage)
+        h << "Example: #{command} #{@cmds[command][:example]}" if @cmds[command].has_key?(:example)
       end
       
       if h.size == 0 then
@@ -210,11 +222,10 @@ class Commands
   
   def which(e, command)
     if @cmds.has_key?(command) then
-      c = @cmds[command][0]
-      if c.respond_to?('instance') and c.plugin != c.instance then
-        "#{c.plugin} (#{c.instance})"
+      if @cmds[command].has_key?(:instance) and @cmds[command][:instance].plugin != @cmds[command][:instance].instance then
+        "#{@cmds[command][:instance].plugin} (#{@cmds[command][:instance].instance})"
       else
-        c.plugin
+        @cmds[command][:instance].plugin
       end
     else
       'command not found'
