@@ -97,6 +97,14 @@ class Array
     
     items.map{ |i, c| c == 1 ? i : "#{i} (#{c})" }.join(', ')
   end
+  
+  def sum
+    inject {|result, element| result + element}
+  end
+  
+  def avg
+    sum / count
+  end
 end
 
 class Hash
