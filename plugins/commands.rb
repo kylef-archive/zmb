@@ -1,18 +1,27 @@
 class Commands
-  attr_accessor :cmds, :cc
+  attr_accessor :cmds, :cc, :definitions
   
   def initialize(sender, s={})
     @delegate = sender
     @cmds = Hash.new
+    @definitions = Hash.new
     
     @cc = s['cc'] if s.has_key?('cc')
     @cc = '.' if @cc == nil
+    @definitions = s['definitions'] if s.has_key?('definitions')
     
     sender.instances.each{ |key, instance| plugin_loaded(key, instance) }
+    
+    @definitions.each do |k,v|
+      @cmds[k] = {
+        :args => v[0],
+        :proc => (eval v[1])
+      }
+    end
   end
   
   def settings
-    { 'cc' => @cc }
+    { 'cc' => @cc, 'definitions' => @definitions }
   end
   
   def self.wizard
@@ -184,6 +193,18 @@ class Commands
       'upcase' => lambda { |e, data| data.upcase },
       'swapcase' => lambda { |e, data| data.swapcase },
       'capitalize' => lambda { |e, data| data.capitalize },
+      'define' => [:define, 3, {
+        :permission => 'admin',
+        :help => 'Dynamically define a command',
+        :usage => 'command arguments block',
+        :example => 'ping nil \"pong\"'
+      }],
+      'undefine' => [:undefine, 1, {
+        :permission => 'admin',
+        :help => 'Undefine a command',
+        :usage => 'command',
+        :example => 'ping'
+      }]
     }
   end
   
@@ -284,6 +305,28 @@ class Commands
   
   def tr(e, from_str, to_str, data)
     data.tr(from_str, to_str)
+  end
+  
+  def define(e, command, arguments, block)
+    arguments = arguments.split_seperators
+    arguments = [] if arguments.include?('nil') or arguments.include?('none')
+    arguments.insert(0, 'e')
+    
+    @cmds[command] = {
+      :args => arguments.count - 1,
+      :proc => (eval "lambda {|#{arguments.join(',')}| #{block}}")
+    }
+    
+    @definitions[command] = [arguments.count-1, "lambda {|#{arguments.join(',')}| #{block}}"]
+    
+    "#{command} has been defined"
+  end
+  
+  def undefine(e, command)
+    @cmds.delete(command)
+    @definitions.delete(command)
+    
+    "#{command} removed"
   end
 end
 
