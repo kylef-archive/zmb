@@ -30,28 +30,28 @@ class Poll
   
   def commands
     {
-      'poll-add' => [:add_command, 2, {
+      'poll-add' => [:add_command, {
         :permission => 'admin',
         :help => 'Add a poll',
         :usage => 'id poll',
         :example => 'colour Red, yellow or blue?' }],
-      'poll-opt' => [:opt_command, 2, {
+      'poll-opt' => [:opt_command, {
         :permission => 'admin',
         :help => 'Add a option to a poll',
         :usage => 'id option',
         :example => 'colour Red' }],
-      'poll-del' => [:del_command, 1, {
+      'poll-del' => [:del_command, {
         :permission => 'admin',
         :help => 'Delete a poll',
         :usage => 'id',
         :example => 'colour' }],
-      'vote' => [:vote_command, 2, {
+      'vote' => [:vote_command, {
         :help => 'Vote on a poll',
         :usage => 'id option',
         :example => 'colour 1' }],
       'polls' => [:polls_command, 0, {
         :help => 'List all poll\'s' }],
-      'poll' => [:poll_command, 1, {
+      'poll' => [:poll_command, {
         :help => 'List a poll',
         :usage => 'id',
         :example => 'colour' }],

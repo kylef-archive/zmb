@@ -29,19 +29,19 @@ class Quote
   
   def commands
     {
-      'quote' => [:quote_command, 1, {
+      'quote' => [:quote_command, {
         :help => 'Show a random quote or the quote with matching id',
-        :usage => '<id>' }],
-      'quote-add' => [:add_command, 1, {
+        :usage => 'id' }],
+      'quote-add' => [:add_command, {
         :help => 'Add a quote',
         :example => 'zynox: Hello!' }],
-      'quote-del' => [:del_command, 1, { 
+      'quote-del' => [:del_command, { 
         :help => 'Delete a quote by id',
         :example => '7'}],
       'quote-count' =>[lambda { |e| "#{count} quotes" }, 0, {
         :help => 'Show amount of quotes' }],
       'quote-last' => [:last_command, 0, { :help => 'Show the last quote' }],
-      'quote-search' => [:search_command, 1, {
+      'quote-search' => [:search_command, {
         :help => 'Search to find a quote',
         :usage => 'search' }],
     }

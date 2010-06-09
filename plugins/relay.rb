@@ -27,12 +27,12 @@ class Relay
     {
       'relays' => [:relays_command, 0, {
         :help => 'Show all relays' }],
-      'relay-add' => [:add_command, 2, {
+      'relay-add' => [:add_command, {
         :permission => 'admin',
         :help => 'Add a relay',
         :usage => 'instance:channel instance:channel',
         :example => 'efnet:#zmb efnet:#zmb2' }],
-      'relay-del' => [:del_command, 1, {
+      'relay-del' => [:del_command, {
         :permission => 'admin'
         :help => 'Delete a relay',
         :usage => 'instance:channel'

@@ -38,17 +38,17 @@ class Usermodes
   
   def commands
     {
-      'usermode-add' => [:usermode_add, 4, {
+      'usermode-add' => [:usermode_add, {
         :permission => 'admin',
         :help => 'Apply a usermode to a user when they join a channel',
         :usage => 'instance channel user mode',
         :example => 'efnet #zmb zynox o' }],
-      'usermode-del' => [:usermode_del, 4, {
+      'usermode-del' => [:usermode_del, {
         :permission => 'admin',
         :help => 'Delete a usermode',
         :usage => 'instance channel user mode',
         :example => 'efnet #zmb zynox o' }],
-      'usermodes' => [:usermodes, 2, {
+      'usermodes' => [:usermodes, {
         :permission => 'admin',
         :help => 'List all usermodes for a channel',
         :usage => 'instance channel',

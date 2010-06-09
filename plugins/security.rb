@@ -69,11 +69,11 @@ class Security
         :example => '.... . .-.. .-.. --- / .-- --- .-. .-.. -..' }],
       
       'rot13' => :rot13,
-      'sha1' => [lambda { |e, data| Digest::SHA1.hexdigest(data) }, 1, { :help => 'Create a sha1 hash of some text' }],
-      'sha256' => [lambda { |e, data| Digest::SHA256.hexdigest(data) }, 1, { :help => 'Create a sha256 hash of some text' }],
-      'md5' => [lambda { |e, data| Digest::MD5.hexdigest(data) }, 1, { :help => 'Create a md5 hash of some text' }],
-      'base64' => [lambda { |e, data| Base64.b64encode(data) }, 1, { :help => '' }],
-      'decode64' => [lambda { |e, data| Base64.decode64(data) }, 1, { :help => '' }],
+      'sha1' => [lambda { |e, data| Digest::SHA1.hexdigest(data) }, { :help => 'Create a sha1 hash of some text' }],
+      'sha256' => [lambda { |e, data| Digest::SHA256.hexdigest(data) }, { :help => 'Create a sha256 hash of some text' }],
+      'md5' => [lambda { |e, data| Digest::MD5.hexdigest(data) }, { :help => 'Create a md5 hash of some text' }],
+      'base64' => [lambda { |e, data| Base64.b64encode(data) }, { :help => 'Encode a string as base64' }],
+      'decode64' => [lambda { |e, data| Base64.decode64(data) }, { :help => 'Decode a string with base64' }],
     }
   end
   

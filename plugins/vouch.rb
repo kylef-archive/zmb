@@ -23,15 +23,15 @@ class Vouch
   
   def commands
     {
-      'vouch' => [:vouch, 1, {
+      'vouch' => [:vouch, {
         :permission => 'authenticated',
         :help => 'Vouch for a user',
         :usage => 'username',
         :example => 'zynox' }],
-      'vouch-limit' => [:limit_command, 1, {
+      'vouch-limit' => [:limit_command, {
         :permission => 'admin',
         :help => 'Change the vouch limit' }],
-      'stats' => [:stats, 1, {
+      'stats' => [:stats, {
         :help => 'View status of a vouch' }],
     }
   end

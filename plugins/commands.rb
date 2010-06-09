@@ -157,6 +157,8 @@ class Commands
             @cmds[k][:proc] = item if item.class == Proc
           end
         end
+        
+        @cmds[k][:args] = @cmds[k][:usage].split(' ').count if @cmds[k].has_key?(:usage)
       end
     end
   end
@@ -168,24 +170,24 @@ class Commands
   def commands
     {
       'help' => :help,
-      'instance' => [:instance_command, 1, { :help => 'List all commands availible for a instance.'}],
-      'which' => [:which, 1, { :help => 'Find which plugin handles a command' }],
-      'cc' => [:control_command, 1, { :permission => 'admin' }],
-      'eval' => [:evaluate, 1, { :permission => 'admin' }],
+      'instance' => [:instance_command, { :help => 'List all commands availible for a instance.'}],
+      'which' => [:which, { :help => 'Find which plugin handles a command' }],
+      'cc' => [:control_command, { :permission => 'admin' }],
+      'eval' => [:evaluate, { :permission => 'admin' }],
       'ieval' => [:instance_evaluate, 2, { :permission => 'admin' }],
       'count' => lambda { |e, data| "#{data.split_seperators.size}" },
       'grep' => [:grep, 2],
       'not' => [:not_command, 2],
       'tail' => :tail,
-      'echo' => [:echo, 1, { :example => 'Hello, {username}' }],
+      'echo' => [:echo, { :example => 'Hello, {username}' }],
       'reverse' => lambda { |e, data| data.reverse },
       'first' => lambda { |e, data| data.split_seperators.first },
       'last' => lambda { |e, data| data.split_seperators.last },
-      'sub' => [:sub, 3, {
+      'sub' => [:sub, {
         :help => 'Replace all occurances of a pattern',
         :usage => 'pattern replacement data',
         :example => 'l * Hello World!' }],
-      'tr' => [:tr, 3, {
+      'tr' => [:tr, {
         :help => 'Returns a copy of str with the characters in from_str replaced by the corresponding characters in to_str',
         :usage => 'from_str to_str data',
         :example => 'aeiou * hello' }],
@@ -193,13 +195,13 @@ class Commands
       'upcase' => lambda { |e, data| data.upcase },
       'swapcase' => lambda { |e, data| data.swapcase },
       'capitalize' => lambda { |e, data| data.capitalize },
-      'define' => [:define, 3, {
+      'define' => [:define, {
         :permission => 'admin',
         :help => 'Dynamically define a command',
         :usage => 'command arguments block',
         :example => 'ping nil "pong"'
       }],
-      'undefine' => [:undefine, 1, {
+      'undefine' => [:undefine, {
         :permission => 'admin',
         :help => 'Undefine a command',
         :usage => 'command',

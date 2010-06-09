@@ -8,13 +8,13 @@ class URL
   def commands
     {
       'head' => :head,
-      'url' => [:get, 1, { :permission => 'admin' }],
+      'url' => [:get, { :permission => 'admin' }],
       'bitly' => :bitly,
       'isgd' => :isgd,
       'tinyurl' => :tinyurl,
       'dpaste' => :dpaste,
       'pastie' => :pastie_command,
-      'ppastie' => [:private_pastie_command, 1, { :help => 'Create a private pastie' }],
+      'ppastie' => [:private_pastie_command, { :help => 'Create a private pastie' }],
     }
   end
   
