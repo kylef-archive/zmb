@@ -125,6 +125,11 @@ optparse = OptionParser.new do |opts|
   opts.on('-l', '--line LINE', 'Execute a command') do |line|
     options[:command] = line
   end
+  
+  options[:fork] = false
+  opts.on('-f', '--fork', 'Detach (fork) ZMB (for use with -d daemon)') do
+    options[:fork] = true
+  end
 end
 
 optparse.parse!
@@ -182,5 +187,10 @@ if options[:shell] then
 end
 
 if options[:daemon] then
-  zmb.run
+  if options[:fork] then
+    Process.detach(fork { STDOUT.reopen(File.open('/dev/null','w')); zmb.run })
+    puts "ZMB detached"
+  else
+    zmb.run
+  end
 end
