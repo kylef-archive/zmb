@@ -220,6 +220,7 @@ class Zmb
       'reset' => [:reset_command, 1, { :permission => 'admin' }],
       'addsource' => [:addource_command, 1, { :permission => 'admin' }],
       'refresh' => [:refresh_command, 1, { :permission => 'admin' }],
+      'quit' => [:quit_command, 0, { :permission => 'admin' }],
     }
   end
   
@@ -322,5 +323,12 @@ class Zmb
   def refresh_command(e)
     @plugin_manager.refresh_plugin_sources
     "Refreshed plugin sources"
+  end
+  
+  def quit_command(e)
+    e.reply "Quitting"
+    save
+    @running = false
+    instances.keys.each{ |i| unload(i) }
   end
 end
