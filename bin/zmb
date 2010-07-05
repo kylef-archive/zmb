@@ -28,7 +28,7 @@ class AdminUser
 end
 
 class Event
-  attr_accessor :message, :user
+  attr_accessor :message, :user, :delegate
   
   def initialize(message)
     @message = message
@@ -45,6 +45,10 @@ class Event
   
   def reply(msg)
     puts "> #{msg}"
+  end
+  
+  def name
+    "admin"
   end
 end
 
