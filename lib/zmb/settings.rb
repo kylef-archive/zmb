@@ -1,3 +1,5 @@
+require 'fileutils'
+
 begin
   require 'json'
 rescue LoadError
