@@ -1,3 +1,5 @@
+require 'cgi'
+
 class Translate
   def initialize(sender, s) ;end
   
@@ -15,7 +17,7 @@ class Translate
       :v => '1.0',
       :key => 'ABQIAAAAhwR5TtcQxY9fSuKy7yrBJhQ-sC4I4KvMQ8RG81t2M9sVc21w2xQUb9Dipx99m8XrHBsa3OctXe2rQw',
       :langpair => "#{to}%7C#{from}",
-      :q => message
+      :q => CGI.escape(message)
     }).body)
     
     if request['responseStatus'] == 200 then
