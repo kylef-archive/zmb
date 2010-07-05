@@ -69,7 +69,8 @@ class Feeds
   
   def list(e)
     if @settings['feeds'].count > 0 then
-      @settings['feeds'].map{ |feed| "#{feed['feed']} (#{feed['instance']}/#{feed['sender']})" }.join("\n")
+      count = 0
+      @settings['feeds'].map{ |feed| "#{count+=1}: #{feed['feed']} (#{feed['instance']}/#{feed['sender']})" }.join("\n")
     else
       "No feeds"
     end
@@ -87,13 +88,25 @@ class Feeds
   end
   
   def remove(e, feed)
-    count = 0
-    @settings['feeds'].reject{ |f| not ((f['feed'] == feed) and (f['instance'] == e.delegate.instance) and (f['sender'] == e.sender)) }.map do |f|
-      count =+ 1
-      @settings['feeds'].delete(f)
+    begin
+      feed_id = Integer(feed) - 1
+      f = @settings['feeds'].at(feed_id)
+      
+      if feed then
+        @settings['feeds'].delete_at(feed_id)
+        "#{f['feed']} deleted"
+      else
+        "No feed with index: #{feed}"
+      end
+    rescue ArgumentError
+      count = 0
+      @settings['feeds'].reject{ |f| not ((f['feed'] == feed) and (f['instance'] == e.delegate.instance) and (f['sender'] == e.sender)) }.map do |f|
+        count =+ 1
+        @settings['feeds'].delete(f)
+      end
+
+      "#{count} feeds removed"
     end
-    
-    "#{count} feeds removed"
   end
 end
 
