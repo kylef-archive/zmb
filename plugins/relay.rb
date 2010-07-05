@@ -33,9 +33,9 @@ class Relay
         :usage => 'instance:channel instance:channel',
         :example => 'efnet:#zmb efnet:#zmb2' }],
       'relay-del' => [:del_command, {
-        :permission => 'admin'
+        :permission => 'admin',
         :help => 'Delete a relay',
-        :usage => 'instance:channel'
+        :usage => 'instance:channel',
         :example => 'efnet:#zmb' }],
     }
   end
