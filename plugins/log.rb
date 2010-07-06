@@ -11,15 +11,32 @@ class Log
     File.join(path, "#{channel}-#{Time.now.strftime('%d%m%Y')}.log")
   end
   
+  def time
+    t = Time.now
+    "#{sprintf("%.2i", t.hour)}:#{sprintf("%.2i", t.min)}:#{sprintf("%.2i", t.sec)}"
+  end
+  
+  def log(instance, channel, message)
+    File.open(log_file(instance, channel), 'a+') { |f| f.write("[#{time}] #{message}" + "\n") }
+  end
+  
   def event(sender, e)
-    if e.respond_to?('channel') and e.respond_to?('line') and e.channel then
-      File.open(log_file(e.delegate.instance, e.channel), 'a+') { |f| f.write(e.line + "\n") }
+    if e.respond_to?('channel') and e.channel then
+      if e.command == 'join' then
+        log(e.delegate.instance, e.channel, "*** Joins: #{e.name} (#{e.userhost})")
+      elsif e.command == 'part'
+        log(e.delegate.instance, e.channel, "*** Parts: #{e.name} (#{e.userhost})")
+      elsif e.command  == 'kick'
+        log(e.delegate.instance, e.channel, "*** #{e.nick} was kicked by #{e.name} (#{e.message})")
+      elsif e.message?
+        log(e.delegate.instance, e.channel, "#{e.name}: #{e.message}")
+      end
     end
   end
 end
 
 Plugin.define do
   name 'log'
-  description 'log everything received from irc'
+  description 'Log every message to a log file'
   object Log
 end

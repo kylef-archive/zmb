@@ -4,6 +4,7 @@ require 'zmb/timer'
 
 class Event
   attr_accessor :delegate, :command, :args, :name, :userhost, :message, :channel, :line
+  attr_accessor :nick
   
   def initialize(sender, line)
     @line = line
@@ -34,7 +35,7 @@ class Event
         @name, @userhost = @userhost.split('!', 2)
       when 'kick'
         @userhost, @channel, @name, @message = args.split(' ', 4)
-        nick, @userhost = @userhost.split('!', 2)
+        @nick, @userhost = @userhost.split('!', 2)
         @message = @message[1..-1]
     end
   end
