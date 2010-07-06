@@ -53,5 +53,6 @@ end
 
 Plugin.define do
   name 'file'
+  description 'Plugin to read/write to files'
   object FileIO
 end

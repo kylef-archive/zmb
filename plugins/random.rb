@@ -27,5 +27,6 @@ end
 
 Plugin.define do
   name 'random'
+  description 'Commands for coinflips, dice, yesno, random'
   object Random
 end

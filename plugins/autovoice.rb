@@ -33,5 +33,6 @@ end
 
 Plugin.define do
   name 'autovoice'
+  description 'Auto voice everyone joining a channel where zmb has op'
   object AutoVoice
 end

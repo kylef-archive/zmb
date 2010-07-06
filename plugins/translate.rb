@@ -32,5 +32,6 @@ end
 
 Plugin.define do
   name 'translate'
+  description 'Translate a message into another language'
   object Translate
 end

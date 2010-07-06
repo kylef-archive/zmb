@@ -49,5 +49,6 @@ end
 
 Plugin.define do
   name 'alias'
+  description 'Alias a command as another command'
   object Alias
 end

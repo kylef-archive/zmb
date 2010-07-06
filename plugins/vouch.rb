@@ -90,5 +90,6 @@ end
 
 Plugin.define do
   name 'vouch'
+  description 'Make users require votes from another user to activate their account'
   object Vouch
 end

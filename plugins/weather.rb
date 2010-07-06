@@ -48,5 +48,6 @@ end
 
 Plugin.define do
   name 'weather'
+  description 'Get the weather for a town/city'
   object Weather
 end

@@ -44,5 +44,6 @@ end
 
 Plugin.define do
   name 'linecount'
+  description 'Count the amount of lines users type'
   object LineCount
 end

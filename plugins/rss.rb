@@ -112,5 +112,6 @@ end
 
 Plugin.define do
   name 'rss'
+  description 'Subscribe and watch RSS/ATOM feeds'
   object Feeds
 end
