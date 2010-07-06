@@ -1,7 +1,7 @@
 class Timer
   require 'date'
   
-  attr_accessor :delegate
+  attr_accessor :delegate, :symbol
   
   def initialize(delegate, symbol, interval, repeat=false, data=nil) # interval is in seconds (decimals accepted)
     @delegate = delegate

@@ -14,14 +14,15 @@ require 'zmb/event'
 require 'zmb/timer'
 
 class Zmb
-  attr_accessor :instances, :plugin_manager, :settings_manager, :plugin_sources
+  attr_accessor :instances, :plugin_manager, :settings_manager, :plugin_sources, :debug
   
   def plugin
     'zmb'
   end
   
   def initialize(config_dir)
-    @debug = true
+    @debug = false
+    @running = false
     
     @plugin_manager = PluginManager.new
     @settings_manager = Settings.new(config_dir)
@@ -45,10 +46,11 @@ class Zmb
     @plugin_manager.add_plugin_source plugin_dir
     
     @settings_manager.get('zmb', 'plugin_instances', []).each{|instance| load instance}
-    
-    @running = false
+    @debug = @settings_manager.get('zmb', 'debug', false)
     
     trap("HUP") { @plugin_manager.refresh_plugin_sources; load "commands"; load "users" }
+    
+    puts "ZMB loaded" if @debug
   end
   
   def running?
@@ -59,10 +61,12 @@ class Zmb
     {
       'plugin_sources' => @plugin_sources,
       'plugin_instances' => @instances.keys,
+      'debug' => @debug,
     }
   end
   
   def save
+    puts "Saving settings" if @debug
     @instances.each{ |k,v| @settings_manager.save(k, v) }
   end
   
@@ -93,15 +97,19 @@ class Zmb
   end
   
   def run
+    puts "ZMB running" if @debug
+    
     post! :running, self
     
     @running = true
     begin
+      puts "ZMB begin run loop" if @debug
       while @running
         socket_run(timeout)
         timer_run
       end
     rescue Interrupt
+      puts "Run Interrupt" if @debug
       save
     end
   end
@@ -121,6 +129,7 @@ class Zmb
   end
   
   def socket_add(delegate, socket)
+    puts "Socket added by #{delegate}" if @debug
     @sockets[socket] = delegate
   end
   
@@ -140,6 +149,7 @@ class Zmb
     if result != nil then
       result[0].select{|sock| @sockets.has_key?(sock)}.each do |sock|
         if sock.eof? then
+          puts "#{@sockets[sock]} socket hit EOF" if @debug
           @sockets[sock].disconnected(self, sock) if @sockets[sock].respond_to?('disconnected')
           socket_delete sock
         else
@@ -150,6 +160,7 @@ class Zmb
   end
   
   def timer_add(timer)
+    puts "Timer: #{timer} added by #{timer.delegate} #{timer.symbol}" if @debug
     @timers << timer
   end
   
@@ -170,7 +181,11 @@ class Zmb
     results = Array.new
     
     @instances.select{|name, instance| instance.respond_to?(signal)}.each do |name, instance|
-      results << instance.send(signal, *args) rescue nil
+      begin
+        results << instance.send(signal, *args)
+      rescue Exception
+        puts "Post: #{signal} failed to #{instance}\n#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}" if @debug
+      end
     end
     
     results
@@ -178,7 +193,11 @@ class Zmb
   
   def post!(signal, *args) # This will exclude the plugin manager
     @instances.select{|name, instance| instance.respond_to?(signal) and instance != self}.each do |name, instance|
-      instance.send(signal, *args) rescue nil
+      begin
+        instance.send(signal, *args)
+      rescue Exception
+        puts "Post: #{signal} failed to #{instance}\n#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}" if @debug
+      end
     end
   end
   
@@ -223,6 +242,9 @@ class Zmb
       'addsource' => [:addource_command, 1, { :permission => 'admin' }],
       'refresh' => [:refresh_command, 1, { :permission => 'admin' }],
       'quit' => [:quit_command, 0, { :permission => 'admin' }],
+      'debug' => [:debug_command, 0, {
+        :permission => 'admin',
+        :help => 'Toggle debug' }],
     }
   end
   
@@ -332,5 +354,15 @@ class Zmb
     save
     @running = false
     instances.keys.each{ |i| unload(i) }
+  end
+  
+  def debug_command(e)
+    @debug = (not @debug)
+    
+    if @debug then
+      "Debugging enabled"
+    else
+      "Debugging disabled"
+    end
   end
 end
