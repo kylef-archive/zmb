@@ -30,14 +30,15 @@ class Weather
       
       current = doc.root.elements['weather/current_conditions']
       condition = current.elements['condition'].attributes['data']
-      temp = current.elements['temp_c'].attributes['data']
+      temp_c = current.elements['temp_c'].attributes['data']
+      temp_f = current.elements['temp_f'].attributes['data']
       humidity = current.elements['humidity'].attributes['data']
       wind_condition = current.elements['wind_condition'].attributes['data']
       
       tomorrow = doc.root.elements['weather/forecast_conditions']
       tomorrow_cond = tomorrow.elements['condition'].attributes['data']
       
-      "#{condition} #{temp}c #{humidity} #{wind_condition} for #{city}\n"+
+      "#{condition} #{temp_c}C/#{temp_f}F #{humidity} #{wind_condition} for #{city}\n"+
       "Forcast for tomorrow #{tomorrow_cond}"
     rescue NoMethodError
       "Command failed, maybe the location is invalid?"
