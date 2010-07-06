@@ -322,7 +322,11 @@ class Users
       'networks' => [:networks, 0, { :help => 'List all availible networks' }],
       'profile' => [:profile, 1, {
         :permission => 'authenticated' }],
-      'message' => [:message, 2, { :permission => 'authenticated' }]
+      'message' => [:message, 2, { :permission => 'authenticated' }],
+      'broadcast' => [:broadcast, {
+        :permission => 'admin',
+        :help => 'Broadcast a message to every user',
+        :usage => 'message' }],
     }
   end
   
@@ -557,6 +561,14 @@ class Users
     else
       "no such user"
     end
+  end
+  
+  def broadcast(e, message)
+    @users.each do |user|
+      user.send(message)
+    end
+    
+    "Message broadcasted to all #{@users.count} users"
   end
 end
 
