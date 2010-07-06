@@ -8,9 +8,9 @@ class URL
     {
       'head' => :head,
       'url' => [:get, { :permission => 'admin' }],
-      'bitly' => :bitly,
-      'isgd' => :isgd,
-      'tinyurl' => :tinyurl,
+      'bitly' => [:bitly, { :help => 'Shorten a URL' }],
+      'isgd' => [:isgd, { :help => 'Shorten a URL' }],
+      'tinyurl' => [:tinyurl, { :help => 'Shorten a URL' }],
       'dpaste' => :dpaste,
       'pastie' => :pastie_command,
       'ppastie' => [:private_pastie_command, { :help => 'Create a private pastie' }],

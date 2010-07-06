@@ -172,13 +172,21 @@ class Commands
       'help' => :help,
       'instance' => [:instance_command, { :help => 'List all commands availible for a instance.'}],
       'which' => [:which, { :help => 'Find which plugin handles a command' }],
-      'cc' => [:control_command, { :permission => 'admin' }],
-      'eval' => [:evaluate, { :permission => 'admin' }],
-      'ieval' => [:instance_evaluate, 2, { :permission => 'admin' }],
-      'count' => lambda { |e, data| "#{data.split_seperators.size}" },
-      'grep' => [:grep, 2],
-      'not' => [:not_command, 2],
-      'tail' => :tail,
+      'cc' => [:control_command, {
+        :permission => 'admin',
+        :help => 'Set the control character for commands' }],
+      'eval' => [:evaluate, {
+        :permission => 'admin',
+        :help => 'Evaluate ruby code' }],
+      'ieval' => [:instance_evaluate, 2, {
+        :permission => 'admin',
+        :help => 'Evaluate ruby on on a instance',
+        :usage => 'commands @cc' }],
+      'count' => [lambda { |e, data| "#{data.split_seperators.size}" }, {
+        :help => 'Count the amount of items in a list' } ],
+      'grep' => [:grep, 2, { :help => 'print lines matching a pattern' } ],
+      'not' => [:not_command, 2, { :help => 'Opposite to grep' } ],
+      'tail' => [:tail, { :help => 'List the last three items in a list' }],
       'echo' => [:echo, { :example => 'Hello, {username}' }],
       'reverse' => lambda { |e, data| data.reverse },
       'first' => lambda { |e, data| data.split_seperators.first },

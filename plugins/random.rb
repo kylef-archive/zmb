@@ -3,11 +3,14 @@ class Random
   
   def commands
     {
-      'random' => :random,
-      'yesno' => [:yesno, 0],
-      'headstails' => [:coinflip, 0],
-      'coinflip' => [:coinflip, 0],
-      'dice' => [lambda { |e| "#{rand(6) + 1}" }, 0],
+      'random' => [:random, {
+        :help => 'Select a item randomly from a list',
+        :usage => 'item 1, item 2, item 3',
+        :example => 'egg, tomatoe, sausage' }],
+      'yesno' => [:yesno, 0, { :help => 'yes or no?' }],
+      'headstails' => [:coinflip, 0, { :help => 'Flip a coin' }],
+      'coinflip' => [:coinflip, 0, { :help => 'Flip a coin' }],
+      'dice' => [lambda { |e| "#{rand(6) + 1}" }, 0, { :help => 'Roll a dice' }],
     }
   end
   

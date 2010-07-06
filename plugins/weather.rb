@@ -6,7 +6,10 @@ class Weather
   
   def commands
     {
-      'weather' => [:weather, 1],
+      'weather' => [:weather, 1, {
+        :help => 'Check the weather',
+        :usage => 'location',
+        :example => 'Cupertino' }],
     }
   end
   

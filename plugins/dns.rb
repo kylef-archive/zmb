@@ -6,9 +6,18 @@ class DNS
   
   def commands
     {
-      'dns' => lambda { |e, host| Resolv.new.getaddress(host) },
-      'rdns' => :rdns,
-      'whois' => [:whois, 1, { :help => 'perform a whois on a domain' }],
+      'dns' => [lambda { |e, host| Resolv.new.getaddress(host) }, {
+        :help => 'Lookup the ip address for a domain',
+        :usage => 'domain',
+        :example => 'apple.com' }],
+      'rdns' => [:rdns, {
+        :help => 'Perform a reverse dns on a host',
+        :usage => 'ip',
+        :example => '17.149.160.49' }],
+      'whois' => [:whois, 1, {
+        :help => 'perform a whois on a domain',
+        :usage => 'domain',
+        :example => 'apple.com' }],
     }
   end
   
