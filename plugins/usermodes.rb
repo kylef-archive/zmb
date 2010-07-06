@@ -27,7 +27,7 @@ class Usermodes
   end
   
   def event(sender, e)
-    if e.command == 'join' and e.respond_to?('user') then
+    if e.command == 'join' and e.respond_to?('user') and not e.user.anonymous? then
       if @usermodes.has_key?(k = e.delegate.instance + ':' + e.channel) then
         if @usermodes[k].has_key?(e.user.username) then
           @usermodes[k][e.user.username].each{ |mode| e.delegate.write "MODE #{e.channel} +#{mode} #{e.name}" }
