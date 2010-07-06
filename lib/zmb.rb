@@ -114,6 +114,13 @@ class Zmb
     end
   end
   
+  def fork_command(e=nil)
+    @running = false
+    puts "Forked" if @debug
+    Process.detach(fork { run })
+    "Forked"
+  end
+  
   def timeout
     if timer_timeout > @maximum_timeout
       if @sockets.size < 1 then
@@ -245,6 +252,11 @@ class Zmb
       'debug' => [:debug_command, 0, {
         :permission => 'admin',
         :help => 'Toggle debug' }],
+      'stdout' => [:stdout_command, {
+        :permission => 'admin',
+        :usage => '/dev/null' }],
+      'fork' => [:fork_command, 0, {
+        :permission => 'admin' }],
     }
   end
   
@@ -364,5 +376,10 @@ class Zmb
     else
       "Debugging disabled"
     end
+  end
+  
+  def stdout_command(e, out)
+    STDOUT.reopen(File.open(out,'w'))
+    "STDOUT set to #{out}"
   end
 end
