@@ -1,3 +1,5 @@
+require 'cgi'
+
 class String
   def self.random(len=8)
     characters = ('a'..'z').to_a + ('1'..'9').to_a
@@ -112,10 +114,10 @@ class Hash
     map { |k, v| 
       if v.instance_of?(Hash)
         v.map { |sk, sv|
-          "#{k}[#{sk}]=#{sv}"
+          "#{k}[#{sk}]=#{CGI.escape(sv)}"
         }.join('&')
       else
-        "#{k}=#{v}"
+        "#{k}=#{CGI.escape(v)}"
       end
     }.join('&')
   end

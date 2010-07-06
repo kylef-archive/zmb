@@ -1,5 +1,4 @@
 require 'net/http'
-require 'cgi'
 require 'rexml/document'
 
 class Weather
@@ -22,7 +21,7 @@ class Weather
       end
     end
     
-    xml_data = 'http://www.google.com/ig/api'.get({ :weather => CGI.escape(location) }).body
+    xml_data = 'http://www.google.com/ig/api'.get({ :weather => location }).body
     doc = REXML::Document.new(xml_data)
     
     begin

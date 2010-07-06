@@ -1,5 +1,3 @@
-require 'cgi'
-
 class Translate
   def initialize(sender, s) ;end
   
@@ -16,8 +14,8 @@ class Translate
     request = JSON.parse("http://ajax.googleapis.com/ajax/services/language/translate".get({
       :v => '1.0',
       :key => 'ABQIAAAAtWAKkpCW6vL4tULVhqm_ZxQVlmwHIG1k2CM6GldPK9kOhyhAchSCYvJg4eFXVQuYYE7r4s1oNbga9A',
-      :langpair => "#{to}%7C#{from}",
-      :q => CGI.escape(message)
+      :langpair => "#{to}|#{from}",
+      :q => message
     }).body)
     
     if request['responseStatus'] == 200 then

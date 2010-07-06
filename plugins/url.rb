@@ -1,6 +1,5 @@
 require 'uri'
 require 'net/http'
-require 'cgi'
 
 class URL
   def initialize(sender, s) ;end
@@ -54,7 +53,7 @@ class URL
   
   def pastie(data, is_private=false, format='plaintext')
     resp, body = 'http://pastie.org/pastes'.post({ :paste => {
-      :body => CGI.escape(data),
+      :body => data,
       :parser => format,
       :restricted => is_private,
       :authorization => 'burger'
