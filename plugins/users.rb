@@ -238,7 +238,7 @@ class Users
   def pre_event(sender, e)
     e.users = self
     e.user = user(e.userhost, true) if not e.user and e.respond_to?('userhost')
-    e.user.saw(e)
+    e.user.saw(e) unless e.user.anonymous?
   end
   
   def commands
