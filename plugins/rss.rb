@@ -27,14 +27,14 @@ class Feeds
           rss = RSS::Parser.parse(feed['feed'].get().body, false)
           rss.items.each do |item|
             link = item.link.to_s
-            link = $1 if link =~ /href="([\w:\/\.\?]*)"/
+            link = $1 if link =~ /\b(([\w-]+:\/\/?|www[.])[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/)))/
             
             break if feed['link'] == link
             @delegate.instances[feed['instance']].message(feed['sender'], "RSS: #{item.title.to_s.gsub(/<\/?[^>]*>/, "")} (#{link})")
           end
           
           link = rss.items[0].link.to_s
-          link = $1 if link =~ /href="([\w:\/\.\?]*)"/
+          link = $1 if link =~ /\b(([\w-]+:\/\/?|www[.])[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/)))/
           feed['link'] = link
       rescue Exception
         @delegate.instances[feed['instance']].message(feed['sender'], "RSS: #{feed['feed']} failed")
