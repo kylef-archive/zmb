@@ -459,7 +459,9 @@ class Users
   end
   
   def seen(e, username)
-    if user = user!(username) and user.seen then
+    if username == e.user.username then
+      "Are you looking for yourself?"
+    elsif user = user!(username) and user.seen then
       "#{username} last seen #{user.seen.since_words}"
     else
       "#{username} has never been seen"
