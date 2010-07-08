@@ -20,11 +20,15 @@ class Zmb
     'zmb'
   end
   
+  def instance
+    'zmb'
+  end
+  
   def initialize(config_dir)
     @debug = false
     @running = false
     
-    @plugin_manager = PluginManager.new
+    @plugin_manager = PluginManager.new(self)
     @settings_manager = Settings.new(config_dir)
     
     @instances = {'zmb' => self}
@@ -49,8 +53,6 @@ class Zmb
     @debug = @settings_manager.get('zmb', 'debug', false)
     
     trap("HUP") { @plugin_manager.refresh_plugin_sources; load "commands"; load "users" }
-    
-    puts "ZMB loaded" if @debug
   end
   
   def running?
@@ -66,8 +68,32 @@ class Zmb
   end
   
   def save
-    puts "Saving settings" if @debug
+    debug(self, "Saving settings")
     @instances.each{ |k,v| @settings_manager.save(k, v) }
+  end
+  
+  def debug(sender, message, exception=nil)
+    return unless @debug
+    line = Array.new
+    
+    if sender then
+      if sender.respond_to?('instance') then
+        line << "(#{sender.instance})"
+      elsif sender == self
+        line << "(core)"
+      elsif sender == plugin_manager
+        line << "(plugins)"
+      else
+        line << "(#{sender})"
+      end
+    else
+      line << "(unknown)"
+    end
+    
+    line << message
+    line << exception if exception
+    
+    puts line.join(' ')
   end
   
   def load(key)
@@ -97,26 +123,24 @@ class Zmb
   end
   
   def run
-    puts "ZMB running" if @debug
-    
+    debug(self, 'Start runloop')
     post! :running, self
     
     @running = true
     begin
-      puts "ZMB begin run loop" if @debug
       while @running
         socket_run(timeout)
         timer_run
       end
     rescue Interrupt
-      puts "Run Interrupt" if @debug
+      debug(self, 'Runloop interrupted')
       save
     end
   end
   
   def fork_command(e=nil)
+    debug(self, 'zmb Forked')
     @running = false
-    puts "Forked" if @debug
     Process.detach(fork { run })
     "Forked"
   end
@@ -136,7 +160,7 @@ class Zmb
   end
   
   def socket_add(delegate, socket)
-    puts "Socket added by #{delegate}" if @debug
+    debug(delegate, "Socked added")
     @sockets[socket] = delegate
   end
   
@@ -156,9 +180,9 @@ class Zmb
     if result != nil then
       result[0].select{|sock| @sockets.has_key?(sock)}.each do |sock|
         if sock.eof? then
-          puts "#{@sockets[sock]} socket hit EOF" if @debug
           @sockets[sock].disconnected(self, sock) if @sockets[sock].respond_to?('disconnected')
           socket_delete sock
+          debug(@sockets[sock], "Socket EOF")
         else
           @sockets[sock].received(self, sock, sock.gets()) if @sockets[sock].respond_to?('received')
         end
@@ -167,7 +191,7 @@ class Zmb
   end
   
   def timer_add(timer)
-    puts "Timer: #{timer} added by #{timer.delegate} #{timer.symbol}" if @debug
+    debug(timer.delegate, "Timer added (#{timer.symbol})")
     @timers << timer
   end
   
@@ -181,7 +205,10 @@ class Zmb
   end
   
   def timer_run
-    @timers.select{|timer| timer.timeout <= 0.0 and timer.respond_to?("fire") }.each{|timer| timer.fire(self)}
+    @timers.select{|timer| timer.timeout <= 0.0 and timer.respond_to?("fire") }.each do |timer|
+      debug(timer.delegate, "Timer #{timer.symbol} fired")
+      timer.fire(self)
+    end
   end
   
   def post(signal, *args)
@@ -189,9 +216,11 @@ class Zmb
     
     @instances.select{|name, instance| instance.respond_to?(signal)}.each do |name, instance|
       begin
-        results << instance.send(signal, *args)
+        result = instance.send(signal, *args)
+        break if result == :halt
+        results << result
       rescue Exception
-        puts "Post: #{signal} failed to #{instance}\n#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}" if @debug
+        debug(instance, "Sending signal `#{signal}` failed", $!)
       end
     end
     
@@ -201,9 +230,9 @@ class Zmb
   def post!(signal, *args) # This will exclude the plugin manager
     @instances.select{|name, instance| instance.respond_to?(signal) and instance != self}.each do |name, instance|
       begin
-        instance.send(signal, *args)
+        break if instance.send(signal, *args) == :halt
       rescue Exception
-        puts "Post: #{signal} failed to #{instance}\n#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}" if @debug
+        debug(instance, "Sending signal `#{signal}` failed", $!)
       end
     end
   end
@@ -226,8 +255,6 @@ class Zmb
   end
   
   def event(sender, e)
-    puts e.line if @debug and e.respond_to?('line')
-    
     Thread.new do
       post! :pre_event, sender, e
       post! :event, sender, e

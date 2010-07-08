@@ -21,7 +21,7 @@ class Timer
         @delegate.send @symbol
       end
     rescue Exception
-      
+      sender.debug(@delegate, "Timer #{@symbol} failed", $!)
     end
 
     if not @repeat

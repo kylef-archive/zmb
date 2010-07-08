@@ -1,7 +1,8 @@
 class PluginManager
   attr_accessor :plugin_sources, :plugins
   
-  def initialize
+  def initialize(delegate=nil)
+    @delegate = delegate
     @plugins = Array.new
     @plugin_sources = Array.new
   end
@@ -22,7 +23,7 @@ class PluginManager
       definition.definitition_file = File.expand_path(file)
       @plugins << definition
     rescue Exception
-      nil
+      @delegate.debug(self, "Cannot load source `#{file}`", $!)
     end
   end
   
@@ -35,9 +36,7 @@ class PluginManager
     ]
     
     definition_files.map do |file|
-      begin
-        load_plugin_source(file)
-      end
+      load_plugin_source(file)
     end
   end
   

@@ -207,8 +207,10 @@ class IrcConnection
   
   def write(line)
     begin
+      @delegate.debug(self, "> #{line}")
       @socket.write line + "\r\n" if @socket
     rescue
+      @delegate.debug(self, "Disconnected at write")
       disconnected(self, nil)
     end  
   end
@@ -236,6 +238,7 @@ class IrcConnection
     @buffer = '' if @buffer == nil
     
     while line != nil do
+      @delegate.debug(self, "< #{line}")
       e = Event.new(self, line)
       
       # Catch some events

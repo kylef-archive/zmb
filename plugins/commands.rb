@@ -125,11 +125,14 @@ class Commands
       elsif c.has_key?(:proc) then
         c[:proc].call(e, *args)
       else
+        delegate(self, "Bad command definition (#{cmd})")
         "Bad command definition"
       end
     rescue ArgumentError
       'incorrect arguments'
     rescue Exception
+      @delegate.debug(c.has_key?(:instance) ? c[:instance] : self, "Command #{cmd} failed", $!)
+      
       if e.respond_to?('user') and e.user.admin? and e.private? then
         "#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}"
       else

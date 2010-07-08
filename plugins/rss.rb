@@ -37,6 +37,7 @@ class Feeds
           link = $1 if link =~ /\b(([\w-]+:\/\/?|www[.])[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/)))/
           feed['link'] = link
       rescue Exception
+        @delegate.debug(self, "Feed #{feed['feed']} failed", $!)
         @delegate.instances[feed['instance']].message(feed['sender'], "RSS: #{feed['feed']} failed")
       end
     end
