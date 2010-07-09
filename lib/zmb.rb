@@ -138,10 +138,22 @@ class Zmb
     end
   end
   
-  def fork_command(e=nil)
-    debug(self, 'zmb Forked')
+  def run_fork
     @running = false
-    Process.detach(fork { run })
+    pid = fork {
+      STDIN.reopen(File.open('/dev/null','r'))
+      STDOUT.reopen(File.open('/dev/null','w'))
+      STDERR.reopen(File.open('/dev/null','w'))
+      run
+    }
+    
+    Process.detach(pid)
+    debug(self, 'zmb Forked')
+    pid
+  end
+  
+  def fork_command(e=nil)
+    run_fork
     "Forked"
   end
   
