@@ -193,6 +193,7 @@ class Zmb
       result[0].select{|sock| @sockets.has_key?(sock)}.each do |sock|
         if sock.eof? then
           @sockets[sock].disconnected(self, sock) if @sockets[sock].respond_to?('disconnected')
+          sock.close
           socket_delete sock
           debug(@sockets[sock], "Socket EOF")
         else
