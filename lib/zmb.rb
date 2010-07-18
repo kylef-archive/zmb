@@ -52,7 +52,9 @@ class Zmb
     @settings_manager.get('zmb', 'plugin_instances', []).each{|instance| load instance}
     @debug = @settings_manager.get('zmb', 'debug', false)
     
-    trap("HUP") { @plugin_manager.refresh_plugin_sources; load "commands"; load "users" }
+    if Signal.list.key?("HUP") then
+      trap("HUP") { @plugin_manager.refresh_plugin_sources; load "commands"; load "users" }
+    end
   end
   
   def running?
