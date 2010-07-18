@@ -5,8 +5,8 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "zmb"
-    gem.summary = %Q{ZMB, messenger bot}
-    gem.description = %Q{ZMB, messenger bot}
+    gem.summary = %Q{ZMB, A modular ruby-based IRC bot with a powerful but simple plugin interface}
+    gem.description = %Q{ZMB, A modular ruby-based IRC bot with a powerful but simple plugin interface}
     gem.email = "inbox@kylefuller.co.uk"
     gem.homepage = "http://github.com/kylef/zmb"
     gem.authors = ["kylef"]

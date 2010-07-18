@@ -1,6 +1,4 @@
-## zmb messenger bot
-
-zmb is a complete messenger bot supporting irc, and command line interface.
+## A modular ruby-based IRC bot with a powerful but simple plugin interface
 
 ### Install
 	gem install zmb
