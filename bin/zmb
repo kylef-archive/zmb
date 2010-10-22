@@ -156,7 +156,7 @@ optparse = OptionParser.new do |opts|
   end
   
   options[:debug] = false
-  opts.on('-D', '--daemon', 'Output debugging information (Implies -f)') do
+  opts.on('-D', '--debug', 'Output debugging information (Implies -f)') do
     options[:foreground] = true
     options[:debug] = true
   end
