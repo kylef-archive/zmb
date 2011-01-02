@@ -85,23 +85,12 @@ def wizard(zmb, plugin)
   STDOUT.flush
   
   if question_bool("Would you like to add the #{plugin.name} plugin? #{plugin.description}") then
-    if plugin.multi_instances? then
-      instance = question_string("What would you like to name this instance of #{plugin.name}?")
-    else
-      instance = plugin.name
-    end
-    
-    if not instance then
-      notice "Must supply instance name, if this plugin should only be loaded once such as commands or users then you can call it that."
-      return wizard(zmb, plugin)
-    end
-    
-    zmb.setup(plugin.name, instance)
-    obj = zmb.plugin_manager.plugin plugin.name
+    zmb.setup(plugin.name)
+
+    obj = plugin.object
     if obj.respond_to?('wizard') then
-      settings = zmb.settings_manager.setting(instance)
-      settings['plugin'] = plugin.name
-      
+      settings = zmb.settings_manager.setting(plugin.name)
+
       obj.wizard.each do |key, value|
         if value.has_key?('help') then
           set = question_string("#{value['help']} (default=#{value['default']})")
@@ -109,9 +98,9 @@ def wizard(zmb, plugin)
         end
       end
       
-      zmb.settings_manager.save(instance, settings)
+      zmb.settings_manager.save(plugin.name)
     end
-    zmb.load instance
+    zmb.load(plugin.name)
   end
 end
 
@@ -187,13 +176,13 @@ if options[:wizard] then
     end
   end
   
-  zmb.plugin_manager.plugins.reject{ |plugin| zmb.instances.has_key? plugin.name }.each{ |plugin| wizard(zmb, plugin) }
+  zmb.plugin_manager.plugins.reject{ |plugin| not zmb.plugin(plugin.name).nil? }.each{ |plugin| wizard(zmb, plugin) }
   
-  if zmb.instances.has_key?('users') and question_bool('Would you like to add a admin user?') then
+  if not zmb.plugin('users').nil? and question_bool('Would you like to add a admin user?') then
     username = question_string('Username:')
     password = question_string('Password:')
     userhost = question_string('Userhost: (Leave blank for none)')
-    zmb.instances['users'].create_user(username, password, userhost).permit('admin')
+    zmb.plugin('users').create_user(username, password, userhost).permit('admin')
   end
   
   zmb.save

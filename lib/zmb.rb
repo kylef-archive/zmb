@@ -14,15 +14,8 @@ require 'zmb/event'
 require 'zmb/timer'
 
 class Zmb
-  attr_accessor :instances, :plugin_manager, :settings_manager, :plugin_sources, :debug
-  
-  def plugin
-    'zmb'
-  end
-  
-  def instance
-    'zmb'
-  end
+  attr_accessor :settings_manager, :debug
+  attr_accessor :plugin_manager, :plugin_sources, :plugins
   
   def initialize(config_dir)
     @debug = false
@@ -31,7 +24,7 @@ class Zmb
     @plugin_manager = PluginManager.new(self)
     @settings_manager = Settings.new(config_dir)
     
-    @instances = {'zmb' => self}
+    @plugins = Array.new
     @sockets = Hash.new
     
     @minimum_timeout = 0.5 # Half a second
@@ -49,7 +42,10 @@ class Zmb
     @plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins')
     @plugin_manager.add_plugin_source plugin_dir
     
-    @settings_manager.get('zmb', 'plugin_instances', []).each{|instance| load instance}
+    @settings_manager.get('zmb', 'plugins', []).each do |plugin_name|
+      load plugin_name
+    end
+
     @debug = @settings_manager.get('zmb', 'debug', false)
     
     if Signal.list.key?("HUP") then
@@ -64,14 +60,15 @@ class Zmb
   def settings
     {
       'plugin_sources' => @plugin_sources,
-      'plugin_instances' => @instances.keys,
+      'plugins' => @plugins.collect{ |p| p.plugin },
       'debug' => @debug,
     }
   end
   
   def save
     debug(self, "Saving settings")
-    @instances.each{ |k,v| @settings_manager.save(k, v) }
+    @plugins.each{ |p| @settings_manager.save(p.plugin, p) }
+    @settings_manager.save('zmb', self)
   end
   
   def debug(sender, message, exception=nil)
@@ -79,10 +76,10 @@ class Zmb
     line = Array.new
     
     if sender then
-      if sender.respond_to?('instance') then
-        line << "(#{sender.instance})"
-      elsif sender == self
+      if sender == self
         line << "(core)"
+      elsif sender.respond_to?('plugin')
+        line << "(#{sender.plugin})"
       elsif sender == plugin_manager
         line << "(plugins)"
       else
@@ -97,31 +94,43 @@ class Zmb
     
     puts line.join(' ')
   end
+
+  # Plugins
+
+  def plugin(name)
+    @plugins.find{ |p| p.plugin == name }
+  end
   
-  def load(key)
-    return true if @instances.has_key?(key)
-    
-    if p = @settings_manager.get(key, 'plugin') then
-      object = @plugin_manager.plugin(p)
-      return false if not object
-      @instances[key] = object.new(self, @settings_manager.setting(key))
-      @instances[key].class.send(:define_method, :plugin) { p }
-      @instances[key].class.send(:define_method, :instance) { key }
-      post! :plugin_loaded, key, @instances[key]
+  def load(name)
+    debug(self, "loading #{name}")
+
+    return true if plugin(name)
+
+    if p = @plugin_manager.plugin(name)
+      inst = p.new(self, @settings_manager.setting(name))
+      inst.class.send(:define_method, :plugin) { "#{name}" }
+      post! :plugin_loaded, name, inst
+      @plugins << inst
       true
     else
       false
     end
   end
-  
-  def unload(key, tell=true)
-    return false if not @instances.has_key?(key)
-    instance = @instances.delete(key)
-    @settings_manager.save key, instance
-    socket_delete instance
-    timer_delete instance
-    instance.unloaded if instance.respond_to?('unloaded') and tell
-    post! :plugin_unloaded, key, instance
+
+  def unload(name, tell=true)
+    p = plugin(name)
+
+    if p
+      @plugins.delete(p)
+      @settings_manager.save name, p
+      socket_delete p
+      timer_delete p
+      p.unloaded if p.respond_to?('unloaded') and tell
+      post! :plugin_unloaded, name, p
+      true
+    else
+      false
+    end
   end
   
   def run
@@ -229,13 +238,13 @@ class Zmb
   def post(signal, *args)
     results = Array.new
     
-    @instances.select{|name, instance| instance.respond_to?(signal)}.each do |name, instance|
+    @plugins.select{ |p| p.respond_to?(signal) }.each do |p|
       begin
-        result = instance.send(signal, *args)
+        result = p.send(signal, *args)
         break if result == :halt
         results << result
       rescue Exception
-        debug(instance, "Sending signal `#{signal}` failed", $!)
+        debug(p, "Sending signal `#{signal}` failed", $!)
       end
     end
     
@@ -243,28 +252,27 @@ class Zmb
   end
   
   def post!(signal, *args) # This will exclude the plugin manager
-    @instances.select{|name, instance| instance.respond_to?(signal) and instance != self}.each do |name, instance|
+    @plugins.select{ |p| p.respond_to?(signal) and p != self }.each do |p|
       begin
-        break if instance.send(signal, *args) == :halt
+        break if p.send(signal, *args) == :halt
       rescue Exception
-        debug(instance, "Sending signal `#{signal}` failed", $!)
+        debug(p, "Sending signal `#{signal}` failed", $!)
       end
     end
   end
   
-  def setup(plugin, instance)
-    object = @plugin_manager.plugin plugin
+  def setup(plugin_name)
+    object = @plugin_manager.plugin(plugin_name)
     return false if not object
     
     s = Hash.new
-    s['plugin'] = plugin
-    
+
     if object.respond_to? 'wizard' then
       d = object.wizard
       d.each{ |k,v| s[k] = v['default'] if v.has_key?('default') and v['default'] }
     end
     
-    @settings_manager.save instance, s
+    @settings_manager.save(plugin_name, s)
     
     true
   end
@@ -286,7 +294,6 @@ class Zmb
       'setup' => [:setup_command, 2, { :permission => 'admin' }],
       'set' => [:set_command, 3, { :permission => 'admin' }],
       'get' => [:get_command, 2, { :permission => 'admin' }],
-      'clone' => [:clone_command, 2, { :permission => 'admin' }],
       'reset' => [:reset_command, 1, { :permission => 'admin' }],
       'addsource' => [:addource_command, 1, { :permission => 'admin' }],
       'refresh' => [:refresh_command, 1, { :permission => 'admin' }],
@@ -302,37 +309,36 @@ class Zmb
     }
   end
   
-  def reload_command(e, instance)
-    if @instances.has_key?(instance) then
+  def reload_command(e, plugin_name)
+    if p = plugin(plugin_name)
       sockets = Array.new
-      @sockets.each{ |sock,delegate| sockets << sock if delegate == @instances[instance] }
-      unload(instance, false)
-      reloaded = @plugin_manager.reload_plugin(@settings_manager.get(instance, 'plugin'))
-      load(instance)
-      
-      sockets.each{ |socket| @sockets[socket] = @instances[instance] }
-      @instances[instance].socket = sockets[0] if sockets.size == 1 and @instances[instance].respond_to?('socket=')
-      
-      reloaded ? "#{instance} reloaded" : "#{instance} refreshed"
+      @sockets.each{ |sock,delegate| sockets << sock if delegate == p }
+      unload(plugin_name, false)
+      reloaded = @plugin_manager.reload_plugin(plugin_name)
+      load(plugin_name)
+      p = plugin(plugin_name)
+      sockets.each{ |socket| @sockets[socket] = p }
+      p.socket = sockets[0] if sockets.size == 1 and p.respond_to?('socket=')
+      reloaded ? "#{plugin_name} reloaded" : "#{plugin_name} refreshed"
     else
-      "No such instance #{instance}"
+      "No such plugin #{plugin_name}"
     end
   end
-  
-  def unload_command(e, instance)
-    if @instances.has_key?(instance) then
-      unload(instance)
-      "#{instance} unloaded"
+
+  def unload_command(e, plugin_name)
+    if plugin(plugin_name)
+      unload(plugin_name)
+      "#{plugin_name} unloaded"
     else
-      "No such instance #{instance}"
+      "No such plugin #{plugin_name}"
     end
   end
-  
-  def load_command(e, instance)
-    if not @instances.has_key?(instance) then
-      load(instance) ? "#{instance} loaded" : "#{instance} did not load correctly"
+
+  def load_command(e, plugin_name)
+    if plugin(plugin_name)
+      "Plugin is already loaded #{plugin_name}"
     else
-      "Instance already loaded #{instance}"
+      load(plugin_name) ? "#{plugin_name} loaded sucsessfully" : "#{plugin_name} failed to load"
     end
   end
   
@@ -342,15 +348,13 @@ class Zmb
   end
   
   def loaded_command(e)
-    @instances.keys.join(', ')
+    @plugins.collect{ |p| p.plugin }.join(', ')
   end
   
-  def setup_command(e, plugin, instance=nil)
-    instance = plugin if not instance
-    
-    if setup(plugin, instance) then
+  def setup_command(e, plugin_name)
+    if setup(plugin) then
       object = @plugin_manager.plugin plugin
-      result = ["Instance saved, please use the set command to override the default configuration for this instance."]
+      result = ["Plugin saved, please use the set command to override the default configuration for this plugin."]
       result += object.wizard.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" } if object.respond_to? 'wizard'
       result.join("\n")
     else
@@ -358,38 +362,29 @@ class Zmb
     end
   end
   
-  def set_command(e, instance, key, value)
-    settings = @settings_manager.setting(instance)
+  def set_command(e, plugin_name, key, value)
+    settings = @settings_manager.setting(plugin_name)
     settings[key] = value
-    @settings_manager.save(instance, settings)
+    @settings_manager.save(plugin_name, settings)
     
-    if @instances.has_key?(instance) and @instances[instance].respond_to?('update') then
-      @instances[instance].update(key, value)
+    if p = plugin(plugin_name)
+      p.update(key, value) if p.respond_to?('update')
     end
-    
-    "#{key} set to #{value} for #{instance}"
+
+    "#{key} set to #{value} for #{plugin_name}"
   end
   
-  def get_command(e, instance, key)
-    if value = @settings_manager.get(instance, key) then
-      "#{key} is #{value} for #{instance}"
+  def get_command(e, plugin_name, key)
+    if value = @settings_manager.get(plugin_name, key) then
+      "#{key} is #{value} for #{plugin_name}"
     else
-      "#{instance} or #{instance}/#{key} not found."
+      "#{plugin_name} or #{plugin_name}/#{key} not found."
     end
   end
-  
-  def clone_command(e, instance, new_instance)
-    if (settings = @settings_manager.setting(instance)) != {} then
-      @settings_manager.save(new_instance, settings)
-      "The settings for #{instance} were copied to #{new_instance}"
-    else
-      "No settings for #{instance}"
-    end
-  end
-  
-  def reset_command(e, instance)
-    @settings_manager.save(instance, {})
-    "Settings for #{instance} have been deleted."
+
+  def reset_command(e, plugin_name)
+    @settings_manager.save(plugin_name, {})
+    "Settings for #{plugin_name} have been deleted."
   end
   
   def addsource_command(e, source)
@@ -407,7 +402,7 @@ class Zmb
     e.reply "Quitting"
     save
     @running = false
-    instances.keys.each{ |i| unload(i) }
+    @plugins.each{ |p| unload(p.plugin) }
   end
   
   def debug_command(e)

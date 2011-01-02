@@ -327,5 +327,4 @@ Plugin.define do
   name "irc"
   description "A plugin which allows you to connect to irc servers."
   object IrcConnection
-  multi_instances true
 end

@@ -10,7 +10,7 @@ class Commands
     @cc = '.' if @cc == nil
     @definitions = s['definitions'] if s.has_key?('definitions')
     
-    sender.instances.each{ |key, instance| plugin_loaded(key, instance) }
+    sender.plugins.each{ |p| plugin_loaded(p.plugin, p) }
     
     @definitions.each do |k,v|
       @cmds[k] = {
@@ -18,6 +18,8 @@ class Commands
         :proc => (eval v[1])
       }
     end
+
+    plugin_loaded('commands', self)
   end
   
   def settings
@@ -141,11 +143,11 @@ class Commands
     end
   end
   
-  def plugin_loaded(key, instance)
-    if instance.respond_to?('commands') then
-      instance.commands.each do |k,v|
+  def plugin_loaded(plugin_name, p)
+    if p.respond_to?('commands') then
+      p.commands.each do |k,v|
         @cmds[k] = {
-          :instance => instance,
+          :instance => p,
           :args => 1
         }
         
@@ -166,14 +168,14 @@ class Commands
     end
   end
   
-  def plugin_unloaded(key, instance)
-    @cmds = @cmds.reject{ |k,v| v[:instance] == instance }
+  def plugin_unloaded(plugin_name, p)
+    @cmds = @cmds.reject{ |k,v| v[:instance] == p }
   end
   
   def commands
     {
       'help' => :help,
-      'instance' => [:instance_command, { :help => 'List all commands availible for a instance.'}],
+      'pcommands' => [:plugin_commands, { :help => 'List all commands availible for a plugin.'}],
       'which' => [:which, { :help => 'Find which plugin handles a command' }],
       'cc' => [:control_command, {
         :permission => 'admin',
@@ -181,9 +183,9 @@ class Commands
       'eval' => [:evaluate, {
         :permission => 'admin',
         :help => 'Evaluate ruby code' }],
-      'ieval' => [:instance_evaluate, 2, {
+      'peval' => [:plugin_evaluate, 2, {
         :permission => 'admin',
-        :help => 'Evaluate ruby on on a instance',
+        :help => 'Evaluate ruby on on a plugin',
         :usage => 'commands @cc' }],
       'count' => [lambda { |e, data| "#{data.split_seperators.size}" }, {
         :help => 'Count the amount of items in a list' } ],
@@ -242,27 +244,27 @@ class Commands
     end
   end
   
-  def instance_command(e, inst)
-    if @delegate.instances.has_key?(inst) then
-      if @delegate.instances[inst].respond_to?('commands') then
-        @delegate.instances[inst].commands.keys.join(', ')
+  def plugin_commands(e, plugin_name)
+    if p = plugin(plugin_name)
+      if p.respond_to?('commands') then
+        p.commands.keys.join(', ')
       else
-        "No commands availible for #{inst}"
+        "No commands availible for #{plugin_name}"
       end 
     else
-      "No instance found for #{inst}"
+      "No plugin found for #{plugin_name}"
     end
   end
   
   def which(e, command)
     if @cmds.has_key?(command) then
-      if @cmds[command].has_key?(:instance) and @cmds[command][:instance].plugin != @cmds[command][:instance].instance then
-        "#{@cmds[command][:instance].plugin} (#{@cmds[command][:instance].instance})"
+      if @cmds[command].has_key?(:instance)
+        cmds[command][:instance].plugin
       else
-        @cmds[command][:instance].plugin
+        "No plugin for command #{command}"
       end
     else
-      'command not found'
+      "#{command}: Command not found"
     end
   end
   
@@ -284,12 +286,12 @@ class Commands
     end
   end
   
-  def instance_evaluate(e, inst, string)
+  def plugin_evaluate(e, plugin_name, string)
     begin
-      if @delegate.instances.has_key?(inst) then
-        "#{@delegate.instances[inst].instance_eval string}"
+      if p = @delegate.plugin(plugin_name) then
+        "#{p.instance_eval string}"
       else
-        "#{inst}: No such instance"
+        "#{plugin_name}: No such plugin"
       end
     rescue Exception
       "#{$!.message}\n#{$!.inspect}"

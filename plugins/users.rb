@@ -474,7 +474,7 @@ class Users
     if command then
       new_event = e.clone
       new_event.user = user
-      new_event.message = @delegate.instances['commands'].cc + command
+      new_event.message = @delegate.plugin('commands').cc + command
       @delegate.event(self, new_event)
       nil
     else
