@@ -47,10 +47,8 @@ class Zmb
     load_plugin_directory(plugin_dir)
 
     @settings_manager.get('zmb', 'plugins', []).each do |plugin_name|
-      load_plugin(plugin_name)
+      load_plugin(plugin_name.to_sym)
     end
-
-    @debug = @settings_manager.get('zmb', 'debug', false)
 
     if Signal.list.key?("HUP") then
       trap("HUP") { @plugin_manager.refresh_plugin_sources; load "commands"; load "users" }
@@ -64,14 +62,14 @@ class Zmb
   def settings
     {
       'plugin_sources' => @plugin_sources,
-      'plugins' => @plugins.collect{ |p| p.plugin },
+      'plugins' => @plugins.collect{ |p| p.class.name },
       'debug' => @debug,
     }
   end
   
   def save
     debug(self, "Saving settings")
-    @plugins.each{ |p| @settings_manager.save(p.plugin, p) }
+    @plugins.each{ |p| @settings_manager.save(p.class.name, p) }
     @settings_manager.save('zmb', self)
   end
   
@@ -82,8 +80,8 @@ class Zmb
     if sender then
       if sender == self
         line << "(core)"
-      elsif sender.respond_to?('plugin')
-        line << "(#{sender.plugin})"
+      elsif sender.class.respond_to?('name')
+        line << "(#{sender.class.name})"
       else
         line << "(#{sender})"
       end
@@ -101,10 +99,13 @@ class Zmb
 
   def load_plugin_source(source_file)
     begin
-      definition = instance_eval(File.read(source_file))
-      definition.definition_file = File.expand_path(source_file)
-      @plugin_classes << definition
-      debug(self, "Loaded source `#{source_file}` (#{definition.name})")
+      source_data = File.read(source_file)
+      source_data =~ /class (\w+) <Plugin/
+      source_data += "\n#{$1}"
+      p = eval(source_data)
+      p.definition_file(File.expand_path(source_file))
+      @plugin_classes << p
+      debug(self, "Loaded source `#{source_file}` (#{p.name})")
     rescue Exception
       debug(self, "Cannot load source `#{source_file}`", $!)
     end
@@ -132,7 +133,7 @@ class Zmb
   end
 
   def plugin(plugin_name) # Find a loaded plugin
-    @plugins.find{ |p| p.plugin == plugin_name }
+    @plugins.find{ |p| p.class.name == plugin_name }
   end
 
   def plugin!(plugin_name) # Find a loaded plugin
@@ -140,29 +141,29 @@ class Zmb
   end
 
   def load_plugin(plugin_name)
-    debug(self, "loading #{plugin_name}")
-
     return true if plugin(plugin_name)
 
     if definition = plugin!(plugin_name)
-      instance = definition.object.new(self, @settings_manager.setting(plugin_name))
-      instance.class.send(:define_method, :plugin) { "#{plugin_name}" }
+      instance = definition.new(self, @settings_manager.setting(plugin_name))
+      instance.zmb = self
       post! :plugin_loaded, plugin_name, instance
       @plugins << instance
+      debug(self, "Loaded #{plugin_name}")
       true
     else
+      debug(self, "No such plugin #{plugin_name}")
       false
     end
   end
 
-  def unload_plugin(name, tell=true)
-    if p = plugin(name)
+  def unload_plugin(plugin_name, tell=true)
+    if p = plugin(plugin_name)
       @plugins.delete(p)
-      @settings_manager.save name, p
+      @settings_manager.save plugin_name, p
       socket_delete p
       timer_delete p
       p.unloaded if p.respond_to?('unloaded') and tell
-      post! :plugin_unloaded, name, p
+      post! :plugin_unloaded, plugin_name, p
       true
     else
       false
@@ -170,14 +171,14 @@ class Zmb
   end
 
   def reload_plugin!(plugin_name)
-    definition = plugins!(plugin_name)
+    p = plugins!(plugin_name)
 
-    if definition
-      @plugin_classes.delete(definition)
-      if load_plugin_source(definition.definition_file)
+    if p
+      @plugin_classes.delete(p)
+      if load_plugin_source(p.definition_file)
         true
       else
-        @plugin_classes << definition
+        @plugin_classes << p
         false
       end
     else
@@ -381,12 +382,12 @@ class Zmb
   # Plugin commands
 
   def reload_command(e, plugin_name)
-    reload_plugin(plugin_name) ? "#{plugin_name} reloaded" : "#{plugin_name} refreshed"
+    reload_plugin(plugin_name.to_sym) ? "#{plugin_name} reloaded" : "#{plugin_name} refreshed"
   end
 
   def unload_command(e, plugin_name)
-    if plugin(plugin_name)
-      unload_plugin(plugin_name)
+    if plugin(plugin_name.to_sym)
+      unload_plugin(plugin_name.to_sym)
       "#{plugin_name} unloaded"
     else
       "No such plugin #{plugin_name}"
@@ -394,10 +395,10 @@ class Zmb
   end
 
   def load_command(e, plugin_name)
-    if plugin(plugin_name)
+    if plugin(plugin_name.to_sym)
       "Plugin is already loaded #{plugin_name}"
     else
-      load_plugin(plugin_name) ? "#{plugin_name} loaded sucsessfully" : "#{plugin_name} failed to load"
+      load_plugin(plugin_name.to_sym) ? "#{plugin_name} loaded sucsessfully" : "#{plugin_name} failed to load"
     end
   end
 
@@ -418,7 +419,7 @@ class Zmb
   end
   
   def loaded_command(e)
-    @plugins.collect{ |p| p.plugin }.join(', ')
+    @plugins.collect{ |p| p.class.name }.join(', ')
   end
   
   def setup_command(e, plugin_name)
@@ -461,7 +462,7 @@ class Zmb
     e.reply "Quitting"
     save
     @running = false
-    @plugins.each{ |p| unload(p.plugin) }
+    @plugins.each{ |p| unload_plugin(p.class.name) }
   end
   
   def debug_command(e)

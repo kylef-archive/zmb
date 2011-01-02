@@ -1,4 +1,7 @@
-class Translate
+class Translate <Plugin
+  name :translate
+  description 'Translate a message into another language'
+
   def initialize(sender, s) ;end
   
   def commands
@@ -26,10 +29,4 @@ class Translate
       "Unknown error occured"
     end
   end
-end
-
-Plugin.define do
-  name 'translate'
-  description 'Translate a message into another language'
-  object Translate
 end

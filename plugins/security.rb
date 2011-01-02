@@ -56,7 +56,10 @@ MORSE = {
   '/' => ' ',
 }
 
-class Security
+class Security <Plugin
+  name :security
+  description 'Hashes, morse code and base64.'
+
   def initialize(sender, s) ;end
   
   def commands
@@ -88,10 +91,4 @@ class Security
   def rot13(e, data)
     data.tr('A-Ma-mN-Zn-z', 'N-Zn-zA-Ma-m')
   end
-end
-
-Plugin.define do
-  name 'security'
-  description 'Hashes, morse code and base64.'
-  object Security
 end

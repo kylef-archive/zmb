@@ -1,7 +1,10 @@
 require 'uri'
 require 'net/http'
 
-class URL
+class URL <Plugin
+  name :url
+  description 'URL shortening and paste websites'
+
   def initialize(sender, s) ;end
   
   def commands
@@ -73,10 +76,4 @@ class URL
   def private_pastie_command(e, data)
     pastie(data, true)
   end
-end
-
-Plugin.define do
-  name 'url'
-  description 'URL shortening and paste websites'
-  object URL
 end

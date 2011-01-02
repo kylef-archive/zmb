@@ -1,4 +1,7 @@
-class AutoVoice
+class AutoVoice <Plugin
+  name :autovoice
+  description  'Auto voice everyone joining a channel where zmb has op'
+
   def initialize(sender, s)
     @settings = s
     @settings['noperm'] = true unless @settings.has_key?('noperm')
@@ -29,10 +32,4 @@ class AutoVoice
       "The permission `autovoice` is required to be autovoiced"
     end
   end
-end
-
-Plugin.define do
-  name 'autovoice'
-  description 'Auto voice everyone joining a channel where zmb has op'
-  object AutoVoice
 end

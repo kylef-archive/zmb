@@ -1,7 +1,10 @@
 require 'net/http'
 require 'rexml/document'
 
-class Weather
+class Weather <Plugin
+  name :weather
+  description 'Get the weather for a town/city'
+
   def initialize(sender, s) ;end
   
   def commands
@@ -47,10 +50,4 @@ class Weather
       "Command failed, maybe the location is invalid?"
     end
   end
-end
-
-Plugin.define do
-  name 'weather'
-  description 'Get the weather for a town/city'
-  object Weather
 end

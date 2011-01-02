@@ -62,7 +62,10 @@ class Event
   end
 end
 
-class IrcConnection
+class IrcConnection <Plugin
+  name :irc
+  description "A plugin which allows you to connect to irc servers."
+
   attr_accessor :delegate, :host, :port, :channels, :nick, :name, :realname, :password, :throttle
   
   def initialize(sender, s={})
@@ -321,10 +324,4 @@ class IrcConnection
   def running(sender)
     connect
   end
-end
-
-Plugin.define do
-  name "irc"
-  description "A plugin which allows you to connect to irc servers."
-  object IrcConnection
 end

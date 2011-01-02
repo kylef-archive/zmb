@@ -1,4 +1,7 @@
-class NickServ
+class NickServ <Plugin
+  name :nickserv
+  description "Authenticates the zmb bot with NickServ."
+
   def initialize(sender, s)
     @password = s['password'] if s.has_key?('password')
   end
@@ -35,10 +38,4 @@ class NickServ
       "Password unset."
     end
   end
-end
-
-Plugin.define do
-  name "nickserv"
-  description "Authenticates the zmb bot with NickServ."
-  object NickServ
 end

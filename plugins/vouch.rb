@@ -1,4 +1,7 @@
-class Vouch
+class Vouch <Plugin
+  name :vouch
+  description 'Make users require votes from another user to activate their account'
+
   attr_accessor :settings
   
   def defaults
@@ -86,10 +89,4 @@ class Vouch
       end
     end
   end
-end
-
-Plugin.define do
-  name 'vouch'
-  description 'Make users require votes from another user to activate their account'
-  object Vouch
 end

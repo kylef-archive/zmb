@@ -1,4 +1,7 @@
-class Commands
+class Commands <Plugin
+  name :commands
+  description  "This plugin is needed for other plugins to function properly."
+
   attr_accessor :cmds, :cc, :definitions
   
   def initialize(sender, s={})
@@ -10,7 +13,7 @@ class Commands
     @cc = '.' if @cc == nil
     @definitions = s['definitions'] if s.has_key?('definitions')
     
-    sender.plugins.each{ |p| plugin_loaded(p.plugin, p) }
+    sender.plugins.each{ |p| plugin_loaded(p.class.name, p) }
     
     @definitions.each do |k,v|
       @cmds[k] = {
@@ -19,7 +22,7 @@ class Commands
       }
     end
 
-    plugin_loaded('commands', self)
+    plugin_loaded(self.class.name, self)
   end
   
   def settings
@@ -245,7 +248,7 @@ class Commands
   end
   
   def plugin_commands(e, plugin_name)
-    if p = plugin(plugin_name)
+    if p = @delegate.plugin(plugin_name.to_sym)
       if p.respond_to?('commands') then
         p.commands.keys.join(', ')
       else
@@ -288,7 +291,7 @@ class Commands
   
   def plugin_evaluate(e, plugin_name, string)
     begin
-      if p = @delegate.plugin(plugin_name) then
+      if p = @delegate.plugin(plugin_name.to_sym) then
         "#{p.instance_eval string}"
       else
         "#{plugin_name}: No such plugin"
@@ -343,10 +346,4 @@ class Commands
     
     "#{command} removed"
   end
-end
-
-Plugin.define do
-  name "commands"
-  description "This plugin is needed for other plugins to function properly."
-  object Commands
 end

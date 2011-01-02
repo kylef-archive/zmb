@@ -3,7 +3,10 @@ require 'rss/2.0'
 require 'rss/atom'
 require 'zmb/timer'
 
-class Feeds
+class Feeds <Plugin
+  name :rss
+  description 'Subscribe and watch RSS/ATOM feeds'
+
   attr_accessor :settings
   
   def initialize(sender, s={})
@@ -109,10 +112,4 @@ class Feeds
       "#{count} feeds removed"
     end
   end
-end
-
-Plugin.define do
-  name 'rss'
-  description 'Subscribe and watch RSS/ATOM feeds'
-  object Feeds
 end

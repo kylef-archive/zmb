@@ -1,4 +1,6 @@
-class Sed
+class Sed <Plugin
+  name :sed
+
   def initialize(sender, settings)
     @messages = Hash.new
   end
@@ -12,9 +14,4 @@ class Sed
       @messages[e.userhost] = e.message if e.message?
     end
   end
-end
-
-Plugin.define do
-  name 'sed'
-  object Sed
 end

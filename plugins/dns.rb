@@ -1,7 +1,10 @@
 require 'resolv'
 require 'socket'
 
-class DNS
+class DNS <Plugin
+  name :dns
+  description 'resolve dns'
+
   def initialize(sender, s) ;end
   
   def commands
@@ -47,10 +50,4 @@ class DNS
       c
     end
   end
-end
-
-Plugin.define do
-  name 'dns'
-  description 'resolve dns'
-  object DNS
 end

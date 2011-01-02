@@ -46,7 +46,10 @@ class Event
   end
 end
 
-class Bank
+class Bank <Plugin
+  name :bank
+  description "virtual bank/money system"
+
   attr_accessor :accounts
   
   def initialize(sender, s={})
@@ -99,10 +102,4 @@ class Bank
     e.bank.transfer(r, amount)
     "#{amount} transfered to #{username}'s account"
   end
-end
-
-Plugin.define do 
-  name "bank"
-  description "virtual bank/money system"
-  object Bank
 end

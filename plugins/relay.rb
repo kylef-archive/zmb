@@ -1,4 +1,7 @@
-class Relay
+class Relay <Plugin
+  name :relay
+  description 'This plugin allows you to relay messages from one channel/server to another.'
+
   attr_accessor :relays
   
   def initialize(sender, s={})
@@ -69,10 +72,4 @@ class Relay
       "no such relay"
     end
   end
-end
-
-Plugin.define do
-  name 'relay'
-  description 'This plugin allows you to relay messages from one channel/server to another.'
-  object Relay
 end

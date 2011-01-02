@@ -1,4 +1,7 @@
-class FileIO
+class FileIO <Plugin
+  name :file
+  description 'Plugin to read/write to files'
+
   def initialize(sender, s); end
   
   def commands
@@ -49,10 +52,4 @@ class FileIO
       f.close unless f.nil?
     end
   end
-end
-
-Plugin.define do
-  name 'file'
-  description 'Plugin to read/write to files'
-  object FileIO
 end

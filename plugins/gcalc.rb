@@ -1,6 +1,9 @@
 require 'uri'
 
-class GCalc
+class GCalc <Plugin
+  name :gcalc
+  description 'Execute a expression using google calculator.'
+
   def initialize(sender, settings); end
   
   def commands
@@ -24,10 +27,4 @@ class GCalc
       "http error (#{resp.code})"
     end
   end
-end
-
-Plugin.define do
-  name 'gcalc'
-  description 'Execute a expression using google calculator.'
-  object GCalc
 end

@@ -1,4 +1,7 @@
-class Usermodes
+class Usermodes <Plugin
+  name :usermodes
+  description 'Auto opping, voicing users in a channel'
+
   def initialize(sender, s)
     @usermodes = Hash.new
     @usermodes = s['usermodes'] if s.has_key?('usermodes')
@@ -103,10 +106,4 @@ class Usermodes
     
     "usermodes vanished"
   end
-end
-
-Plugin.define do
-  name 'usermodes'
-  description 'Auto opping, voicing users in a channel'
-  object Usermodes
 end

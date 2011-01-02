@@ -1,6 +1,9 @@
 require 'zmb/timer'
 
-class Announce
+class Announce <Plugin
+  name :announce
+  description 'Send message to a channel automatically in a certain amount of time'
+
   def initialize(sender, s)
     @delegate = sender
     @announcements = Hash.new
@@ -100,10 +103,4 @@ class Announce
       "#{id} not found"
     end
   end
-end
-
-Plugin.define do
-  name 'announce'
-  description 'Send message to a channel automatically in a certain amount of time'
-  object Announce
 end

@@ -1,4 +1,7 @@
-class Random
+class Random <Plugin
+  name :random
+  description 'Commands for coinflips, dice, yesno, random'
+
   def initialize(sender, settings); end
   
   def commands
@@ -26,10 +29,4 @@ class Random
   def coinflip(e)
     random(e, ['heads', 'tails'])
   end
-end
-
-Plugin.define do
-  name 'random'
-  description 'Commands for coinflips, dice, yesno, random'
-  object Random
 end

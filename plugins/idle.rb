@@ -1,4 +1,7 @@
-class Idle
+class Idle <Plugin
+  name :idle
+  description "Let's you see how idle a channel has been"
+
   def initialize(sender, s)
     @channels = Hash.new
   end
@@ -25,10 +28,4 @@ class Idle
       "Last message in #{channel} was #{@channels[channel].since_words}"
     end
   end
-end
-
-Plugin.define do
-  name 'idle'
-  description 'Let\'s you see how idle a channel has been'
-  object Idle
 end

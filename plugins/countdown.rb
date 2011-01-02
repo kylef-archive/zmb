@@ -1,6 +1,8 @@
 require 'time'
 
-class Countdown
+class Countdown <Plugin
+  name :countdown
+
   attr_accessor :settings
   
   def initialize(sender, settings)
@@ -38,9 +40,4 @@ class Countdown
     @settings['countdown'].delete(key)
     "Countdown #{key} removed"
   end
-end
-
-Plugin.define do
-  name 'countdown'
-  object Countdown
 end

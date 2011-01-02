@@ -1,7 +1,10 @@
 require 'digest'
 require 'zmb/timer'
 
-class HttpWatch
+class HttpWatch <Plugin
+  name :httpwatch
+  description 'Watch a url for changes'
+
   attr_accessor :settings
   
   def initialize(sender, s)
@@ -55,10 +58,4 @@ class HttpWatch
       "No url match for this url on this irc server from user/channel"
     end
   end
-end
-
-Plugin.define do
-  name 'httpwatch'
-  description 'Watch a url for changes'
-  object HttpWatch
 end

@@ -1,6 +1,9 @@
 require 'ftools'
 
-class Log
+class Log <Plugin
+  name :log
+  description 'Log every message to a log file'
+
   def initialize(sender, s)
     @delegate = sender
   end
@@ -33,10 +36,4 @@ class Log
       end
     end
   end
-end
-
-Plugin.define do
-  name 'log'
-  description 'Log every message to a log file'
-  object Log
 end

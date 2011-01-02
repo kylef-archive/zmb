@@ -1,4 +1,7 @@
-class Quote
+class Quote <Plugin
+  name :quote
+  description "quote database"
+
   attr_accessor :quotes, :autoindex
   
   def initialize(sender, s={})
@@ -91,10 +94,4 @@ class Quote
       "no quotes found"
     end
   end
-end
-
-Plugin.define do
-  name "quote"
-  description "quote database"
-  object Quote
 end

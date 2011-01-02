@@ -23,6 +23,7 @@ class Settings
   end
   
   def setting_path(key)
+    key = key.to_s if key.class != String
     File.join(@directory, key.gsub('/', '_') + '.json')
   end
   

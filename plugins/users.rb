@@ -208,7 +208,10 @@ class AnonymousUser
   end
 end
 
-class Users
+class Users <Plugin
+  name :users
+  description 'user accounts/permissions system'
+
   attr_accessor :users, :user_defaults
   
   def initialize(sender, s={})
@@ -474,7 +477,7 @@ class Users
     if command then
       new_event = e.clone
       new_event.user = user
-      new_event.message = @delegate.plugin('commands').cc + command
+      new_event.message = @delegate.plugin(:commands).cc + command
       @delegate.event(self, new_event)
       nil
     else
@@ -572,10 +575,4 @@ class Users
     
     "Message broadcasted to all #{@users.count} users"
   end
-end
-
-Plugin.define do 
-  name 'users'
-  description 'user accounts/permissions system'
-  object Users
 end

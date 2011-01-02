@@ -1,4 +1,7 @@
-class LineCount
+class LineCount <Plugin
+  name :linecount
+  description 'Count the amount of lines users type'
+
   attr_accessor :users
   
   def initialize(sender, s)
@@ -40,10 +43,4 @@ class LineCount
   def lines(e)
     @users.invert.sort.reverse[0..5].map{ |l,u| "#{u} (#{l})"}.join(', ')
   end
-end
-
-Plugin.define do
-  name 'linecount'
-  description 'Count the amount of lines users type'
-  object LineCount
 end

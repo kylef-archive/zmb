@@ -1,4 +1,7 @@
-class System
+class System <Plugin
+  name :system
+  description "System infomation (uptime, date)"
+
   def initialize(sender, s) ;end
   
   def commands
@@ -15,10 +18,4 @@ class System
   def date(e)
     "#{Time.now}"
   end
-end
-
-Plugin.define do
-  name "system"
-  description "System infomation (uptime, date)"
-  object System
 end

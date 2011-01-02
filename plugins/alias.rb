@@ -1,4 +1,6 @@
-class Alias
+class Alias <Plugin
+  name :alias
+
   attr_accessor :aliases
   
   def initialize(sender, settings)
@@ -45,10 +47,4 @@ class Alias
       @aliases.each{ |a, c| e.message.sub!(a, c) if e.message =~ /^#{a}/ }
     end
   end
-end
-
-Plugin.define do
-  name 'alias'
-  description 'Alias a command as another command'
-  object Alias
 end

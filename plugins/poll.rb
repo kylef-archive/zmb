@@ -1,4 +1,7 @@
-class Poll
+class Poll <Plugin
+  name :poll
+  description 'voting plugin'
+
   def initialize(sender, s={})
     @polls = Hash.new
     @polls = s['polls'] if s.has_key?('polls')
@@ -111,10 +114,4 @@ class Poll
       "#{slug}: poll doesn't exist"
     end
   end
-end
-
-Plugin.define do
-  name 'poll'
-  description 'voting plugin'
-  object Poll
 end
