@@ -16,43 +16,47 @@ require 'zmb/timer'
 class Zmb
   attr_accessor :settings_manager, :debug
   attr_accessor :plugin_manager, :plugin_sources, :plugins
-  
+  attr_accessor :plugin_classes
+
   def initialize(config_dir)
     @debug = false
     @running = false
-    
-    @plugin_manager = PluginManager.new(self)
+
     @settings_manager = Settings.new(config_dir)
-    
-    @plugins = Array.new
+    @debug = @settings_manager.get('zmb', 'debug', false)
+
     @sockets = Hash.new
-    
+
     @minimum_timeout = 0.5 # Half a second
     @maximum_timeout = 60.0 # Sixty seconds
     @timers = Array.new
     timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
-    
+
     plugin_dir = File.join(@settings_manager.directory, 'plugins')
     if not File.exist?(plugin_dir) then
       FileUtils.makedirs(plugin_dir)
     end
-    
+
+    @loaded_plugin_directories = Array.new
+    @plugin_classes = Array.new
+    @plugins = Array.new
+
     @plugin_sources = @settings_manager.get('zmb', 'plugin_sources', [])
-    @plugin_sources.each{ |source| @plugin_manager.add_plugin_source source }
-    @plugin_manager.add_plugin_source File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins')
-    @plugin_manager.add_plugin_source plugin_dir
-    
+    @plugin_sources.each{ |directory| load_plugin_directory(directory) }
+    load_plugin_directory(File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins'))
+    load_plugin_directory(plugin_dir)
+
     @settings_manager.get('zmb', 'plugins', []).each do |plugin_name|
-      load plugin_name
+      load_plugin(plugin_name)
     end
 
     @debug = @settings_manager.get('zmb', 'debug', false)
-    
+
     if Signal.list.key?("HUP") then
       trap("HUP") { @plugin_manager.refresh_plugin_sources; load "commands"; load "users" }
     end
   end
-  
+
   def running?
     @running
   end
@@ -80,8 +84,6 @@ class Zmb
         line << "(core)"
       elsif sender.respond_to?('plugin')
         line << "(#{sender.plugin})"
-      elsif sender == plugin_manager
-        line << "(plugins)"
       else
         line << "(#{sender})"
       end
@@ -97,30 +99,64 @@ class Zmb
 
   # Plugins
 
-  def plugin(name)
-    @plugins.find{ |p| p.plugin == name }
+  def load_plugin_source(source_file)
+    begin
+      definition = instance_eval(File.read(source_file))
+      definition.definition_file = File.expand_path(source_file)
+      @plugin_classes << definition
+      debug(self, "Loaded source `#{source_file}` (#{definition.name})")
+    rescue Exception
+      debug(self, "Cannot load source `#{source_file}`", $!)
+    end
   end
-  
-  def load(name)
-    debug(self, "loading #{name}")
 
-    return true if plugin(name)
+  def load_plugin_directory(directory)
+    debug(self, "Loading plugin directory `#{directory}`")
+    @loaded_plugin_directories << directory
 
-    if p = @plugin_manager.plugin(name)
-      inst = p.new(self, @settings_manager.setting(name))
-      inst.class.send(:define_method, :plugin) { "#{name}" }
-      post! :plugin_loaded, name, inst
-      @plugins << inst
+    definition_files = Dir[
+      File.join(File.expand_path(directory), "*.rb"),
+      File.join(File.expand_path(directory), "*", "plugin.rb")
+    ]
+
+    definition_files.map do |source_file|
+      load_plugin_source(source_file)
+    end
+  end
+
+  def refresh_plugin_directories
+    sources = @loaded_plugin_directories
+    @plugin_classes = Array.new
+    @loaded_plugin_directories = Array.new
+    sources.each{ |directory| add_plugin_source(directory) }
+  end
+
+  def plugin(plugin_name) # Find a loaded plugin
+    @plugins.find{ |p| p.plugin == plugin_name }
+  end
+
+  def plugin!(plugin_name) # Find a loaded plugin
+    @plugin_classes.find{ |p| p.name == plugin_name }
+  end
+
+  def load_plugin(plugin_name)
+    debug(self, "loading #{plugin_name}")
+
+    return true if plugin(plugin_name)
+
+    if definition = plugin!(plugin_name)
+      instance = definition.object.new(self, @settings_manager.setting(plugin_name))
+      instance.class.send(:define_method, :plugin) { "#{plugin_name}" }
+      post! :plugin_loaded, plugin_name, instance
+      @plugins << instance
       true
     else
       false
     end
   end
 
-  def unload(name, tell=true)
-    p = plugin(name)
-
-    if p
+  def unload_plugin(name, tell=true)
+    if p = plugin(name)
       @plugins.delete(p)
       @settings_manager.save name, p
       socket_delete p
@@ -132,7 +168,39 @@ class Zmb
       false
     end
   end
-  
+
+  def reload_plugin!(plugin_name)
+    definition = plugins!(plugin_name)
+
+    if definition
+      @plugin_classes.delete(definition)
+      if load_plugin_source(definition.definition_file)
+        true
+      else
+        @plugin_classes << definition
+        false
+      end
+    else
+      false
+    end
+  end
+
+  def reload_plugin(plugin_name)
+    if p = plugin(plugin_name)
+      sockets = Array.new
+      @sockets.each{ |sock,delegate| sockets << sock if delegate == p }
+      unload(plugin_name, false)
+      reloaded = reload_plugin!(plugin_name)
+      load(plugin_name)
+      p = plugin(plugin_name)
+      sockets.each{ |socket| @sockets[socket] = p }
+      p.socket = sockets[0] if sockets.size == 1 and p.respond_to?('socket=')
+      reloaded ? true : false
+    else
+      false
+    end
+  end
+
   def run
     debug(self, 'Start runloop')
     post! :running, self
@@ -262,9 +330,10 @@ class Zmb
   end
   
   def setup(plugin_name)
-    object = @plugin_manager.plugin(plugin_name)
-    return false if not object
-    
+    definition = plugin!(plugin_name)
+    return false if not definition
+    object = definition.object
+
     s = Hash.new
 
     if object.respond_to? 'wizard' then
@@ -309,25 +378,15 @@ class Zmb
     }
   end
   
+  # Plugin commands
+
   def reload_command(e, plugin_name)
-    if p = plugin(plugin_name)
-      sockets = Array.new
-      @sockets.each{ |sock,delegate| sockets << sock if delegate == p }
-      unload(plugin_name, false)
-      reloaded = @plugin_manager.reload_plugin(plugin_name)
-      load(plugin_name)
-      p = plugin(plugin_name)
-      sockets.each{ |socket| @sockets[socket] = p }
-      p.socket = sockets[0] if sockets.size == 1 and p.respond_to?('socket=')
-      reloaded ? "#{plugin_name} reloaded" : "#{plugin_name} refreshed"
-    else
-      "No such plugin #{plugin_name}"
-    end
+    reload_plugin(plugin_name) ? "#{plugin_name} reloaded" : "#{plugin_name} refreshed"
   end
 
   def unload_command(e, plugin_name)
     if plugin(plugin_name)
-      unload(plugin_name)
+      unload_plugin(plugin_name)
       "#{plugin_name} unloaded"
     else
       "No such plugin #{plugin_name}"
@@ -338,10 +397,21 @@ class Zmb
     if plugin(plugin_name)
       "Plugin is already loaded #{plugin_name}"
     else
-      load(plugin_name) ? "#{plugin_name} loaded sucsessfully" : "#{plugin_name} failed to load"
+      load_plugin(plugin_name) ? "#{plugin_name} loaded sucsessfully" : "#{plugin_name} failed to load"
     end
   end
-  
+
+   def addsource_command(e, source)
+    @plugin_sources << source
+    add_plugin_source source
+    "#{source} added to plugin manager"
+  end
+
+  def refresh_command(e)
+    refresh_plugin_directories
+    "Refreshed plugin directories"
+  end
+
   def save_command(e)
     save
     'settings saved'
@@ -352,8 +422,8 @@ class Zmb
   end
   
   def setup_command(e, plugin_name)
-    if setup(plugin) then
-      object = @plugin_manager.plugin plugin
+    if setup(plugin_name) then
+      object = plugin!(plugin_name).object
       result = ["Plugin saved, please use the set command to override the default configuration for this plugin."]
       result += object.wizard.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" } if object.respond_to? 'wizard'
       result.join("\n")
@@ -385,17 +455,6 @@ class Zmb
   def reset_command(e, plugin_name)
     @settings_manager.save(plugin_name, {})
     "Settings for #{plugin_name} have been deleted."
-  end
-  
-  def addsource_command(e, source)
-    @plugin_sources << source
-    @plugin_manager.add_plugin_source source
-    "#{source} added to plugin manager"
-  end
-  
-  def refresh_command(e)
-    @plugin_manager.refresh_plugin_sources
-    "Refreshed plugin sources"
   end
   
   def quit_command(e)
