@@ -69,6 +69,8 @@ class IrcConnection <Plugin
   attr_accessor :delegate, :host, :port, :channels, :nick, :name, :realname, :password, :throttle
   
   def initialize(sender, s={})
+    super
+
     @delegate = sender
     
     @host = s['host'] if s.has_key?('host')
@@ -89,7 +91,7 @@ class IrcConnection <Plugin
     @throttle = 10
     @throttle = s['throttle'] if s.has_key?('throttle')
     
-    @delegate.timer_add(Timer.new(self, :connect, 0.1, false)) if sender.running?
+    add_timer(:connect, 0.1, false)# if sender.running?
   end
   
   def socket=(value)
@@ -189,17 +191,17 @@ class IrcConnection <Plugin
   
   def connect
     if @host and @port and not connected? then
-      Thread.new do
+      #Thread.new do
         @socket = TCPSocket.new(@host, @port)
         @delegate.socket_add(self, @socket)
         perform
-      end
+      #end
     end
   end
   
   def disconnected(sender, socket)
     @socket = nil
-    @delegate.timer_add(Timer.new(self, :connect, @throttle))
+    add_timer(:connect, @throttle, false)
   end
   
   def perform
@@ -210,10 +212,10 @@ class IrcConnection <Plugin
   
   def write(line)
     begin
-      @delegate.debug(self, "> #{line}")
+      debug("> #{line}")
       @socket.write line + "\r\n" if @socket
     rescue
-      @delegate.debug(self, "Disconnected at write")
+      debug("Disconnected at write")
       disconnected(self, nil)
     end  
   end

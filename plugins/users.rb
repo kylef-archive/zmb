@@ -215,6 +215,7 @@ class Users <Plugin
   attr_accessor :users, :user_defaults
   
   def initialize(sender, s={})
+    super
     @delegate = sender
     @users = Array.new
     @user_defaults = Hash.new

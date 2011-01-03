@@ -16,14 +16,9 @@ class Feeds <Plugin
     @settings['instances'] = Array.new unless settings.has_key?('instances')
     @settings['feeds'] = Array.new unless settings.has_key?('feeds')
     
-    setup_timer
+    add_timer(:timer, (@settings['interval'] * 60), true)
   end
-  
-  def setup_timer
-    @delegate.timer_delete(self)
-    @delegate.timer_add(Timer.new(self, :timer, (@settings['interval'] * 60), true))
-  end
-  
+
   def timer(e=nil)
     @settings['feeds'].each do |feed|
       begin
@@ -67,7 +62,8 @@ class Feeds <Plugin
   
   def interval(e, i)
     @settings['interval'] = Integer(i)
-    setup_timer
+    @timers.each{ |t| t.invalidate }
+    add_timer(:timer, (@settings['interval'] * 60), true)
     "RSS interval set to #{@settings['interval']}"
   end
   

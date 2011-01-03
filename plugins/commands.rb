@@ -5,6 +5,8 @@ class Commands <Plugin
   attr_accessor :cmds, :cc, :definitions
   
   def initialize(sender, s={})
+    super
+
     @delegate = sender
     @cmds = Hash.new
     @definitions = Hash.new

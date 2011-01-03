@@ -30,7 +30,7 @@ class Zmb
     @minimum_timeout = 0.5 # Half a second
     @maximum_timeout = 60.0 # Sixty seconds
     @timers = Array.new
-    timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
+    #timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
 
     plugin_dir = File.join(@settings_manager.directory, 'plugins')
     if not File.exist?(plugin_dir) then
@@ -161,7 +161,6 @@ class Zmb
       @plugins.delete(p)
       @settings_manager.save plugin_name, p
       socket_delete p
-      timer_delete p
       p.unloaded if p.respond_to?('unloaded') and tell
       post! :plugin_unloaded, plugin_name, p
       true
@@ -238,14 +237,15 @@ class Zmb
   end
   
   def timeout
-    if timer_timeout > @maximum_timeout
+    _timer_timeout = timer_timeout
+    if _timer_timeout > @maximum_timeout
       if @sockets.size < 1 then
         5
       else
         @maximum_timeout
       end
-    elsif timer_timeout > @minimum_timeout
-      timer_timeout
+    elsif _timer_timeout > @minimum_timeout
+      _timer_timeout
     else
       @minimum_timeout
     end
@@ -283,24 +283,14 @@ class Zmb
     end
   end
   
-  def timer_add(timer)
-    debug(timer.delegate, "Timer added (#{timer.symbol})")
-    @timers << timer
-  end
-  
-  def timer_delete(search)
-    @timers.each{ |timer| @timers.delete(timer) if timer.delegate == search }
-    @timers.delete(search)
-  end
-  
   def timer_timeout # When will the next timer run?
-    @timers.map{|timer| timer.timeout}.sort.fetch(0, @maximum_timeout)
+    @plugins.map{ |p| p.timers.map{ |t| t.timeout } }.flatten.sort.fetch(0, @maximum_timeout)
   end
   
   def timer_run
-    @timers.select{|timer| timer.timeout <= 0.0 and timer.respond_to?("fire") }.each do |timer|
-      debug(timer.delegate, "Timer #{timer.symbol} fired")
-      timer.fire(self)
+    timers = @plugins.map{ |p| p.timers.select{ |t| t.timeout <= 0.0 } }
+    timers.flatten.each do |t|
+      t.fire
     end
   end
   

@@ -39,13 +39,12 @@ class Announce <Plugin
   
   def timer(id)
     a = @announcements["#{id}"]
-    a['timer'] = Timer.new(self, :exec, a['interval'], true, id)
-    @delegate.timer_add(a['timer'])
+    a['timer'] = add_timer(:exec, a['interval'], true, id)
   end
   
   def delete(id)
     if (a = @announcements.fetch("#{id}", false)) then
-      @delegate.timer_delete(a['timer']) if a.has_key?('timer')
+      a['timer'].invalidate if a.has_key?('timer')
       @announcements.delete("#{id}")
       true
     else

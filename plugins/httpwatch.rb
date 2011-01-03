@@ -12,8 +12,8 @@ class HttpWatch <Plugin
     @settings = s
     @settings['urls'] = Array.new unless @settings.has_key?('urls')
     @settings['interval'] = 60*5 unless @settings.has_key?('interval')
-    
-    @delegate.timer_add(Timer.new(self, :check, @settings['interval'], true))
+
+    add_timer(:check, @settings['interval'])
   end
   
   def check
