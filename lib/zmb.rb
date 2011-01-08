@@ -112,6 +112,7 @@ class Zmb
   end
 
   def load_plugin_directory(directory)
+    $LOAD_PATH << directory
     debug(self, "Loading plugin directory `#{directory}`")
     @loaded_plugin_directories << directory
 
