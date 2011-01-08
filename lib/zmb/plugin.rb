@@ -1,3 +1,6 @@
+class Halt <Exception; end
+class HaltCore <Halt; end
+
 class Plugin
   attr_accessor :zmb, :timers
 
@@ -15,12 +18,39 @@ class Plugin
     attr_rw :name, :description, :definition_file
   end
 
+  def halt(*args)
+    raise Halt.new(*args)
+  end
+
+  def haltcore(*args)
+    raise HaltCore.new(*args)
+  end
+
   def initialize(delegate, s)
     @timers = Array.new
   end
 
+  def plugins
+    @delegate.plugins
+  end
+
   def debug(message, exception=nil)
     zmb.debug(self, message, exception) if @zmb
+  end
+
+  def post(signal, *args, &block)
+    plugins.select{ |p| p.respond_to?(signal) }.each do |p|
+      begin
+        p.send(signal, *args)
+      rescue HaltCore
+        block.call if block
+        return
+      rescue Halt
+        return
+      rescue
+        zmb.debug(p, "Sending signal `#{signal}` failed", $!)
+      end
+    end
   end
 
   # Timers
