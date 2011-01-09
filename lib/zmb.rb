@@ -204,9 +204,9 @@ class Zmb
 
   def run
     debug(self, 'Start runloop')
-    post! :running, self
-    
+
     @running = true
+    post!(:zmb_run, self)
     begin
       while @running
         socket_run(timeout)
@@ -216,6 +216,9 @@ class Zmb
       debug(self, 'Runloop interrupted')
       save
     end
+
+    debug(self, 'End runloop')
+    post!(:zmb_exit, self)
   end
   
   def run_fork
