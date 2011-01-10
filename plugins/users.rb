@@ -116,12 +116,12 @@ class User
     @settings['networks'][n] = info
   end
   
-  def saw(e=nil)
+  def saw(message=nil)
     @settings['seen'] = Time.now
     
-    if e then
-      buffer.each do |message|
-        e.delegate.message(e.name, message)
+    if message then
+      buffer.each do |m|
+        message.user.message(m)
       end
       
       clear_buffer
@@ -238,13 +238,12 @@ class Users <Plugin
   def user(search, active=nil)
     user!(search, active) or AnonymousUser.new
   end
-  
-  def pre_event(sender, e)
-    e.users = self
-    e.user = user(e.userhost, true) if not e.user and e.respond_to?('userhost')
-    e.user.saw(e) unless e.user.anonymous?
+
+  def irc_message(connection, message)
+    message.opts[:user] = user(message.user.userhost, true)
+    message.opts[:user].saw(message)
   end
-  
+
   def commands
     {
       'activate' => [:activate, 1, { :help => 'Activate a user account' }],
@@ -282,7 +281,7 @@ class Users <Plugin
       'logout' => [:logout, 0, {
         :permission => 'authenticated',
         :help => 'Logout from your account, this will remove your current userhost from your account.' }],
-      'whoami' => [lambda { |e| "#{e.user}" }, 0, { :help => 'Who are you logged in as?' }],
+      'whoami' => [lambda { |m| "#{m.ops[:user]}" }, 0, { :help => 'Who are you logged in as?' }],
       'userhosts' => [:userhosts, 0, {
         :permission => 'authenticated',
         :help => 'List all the userhosts associated with your account.' }],
@@ -334,7 +333,7 @@ class Users <Plugin
     }
   end
   
-  def activate(e, username)
+  def activate(message, username)
     if user = user!(username) then
       user.activate
       "#{username} active"
@@ -343,7 +342,7 @@ class Users <Plugin
     end
   end
   
-  def deactivate(e, username)
+  def deactivate(message, username)
     if user = user!(username) then
       user.deactivate
       "#{username} deactivated"
@@ -352,29 +351,29 @@ class Users <Plugin
     end
   end
   
-  def meet(e, username=nil)
-    username = e.name if not e.user.admin?
+  def meet(message, username=nil)
+    username = message.user.nick if not message.opts[:user].admin?
     
     if username == 'nobody' then
       "nobody is a excluded name"
     elsif not user!(username) then
       @users << user = User.new(@user_defaults.merge({'username' => username}))
-      user.userhosts << e.userhost if not e.user.admin? and e.respond_to?('userhost')
+      user.userhosts << message.user.userhost if not message.opts[:user].admin?
       "Hello #{user}"
     else
-      "You already have an account #{e.user}"
+      "You already have an account #{message.opts[:user]}"
     end
   end
   
-  def forget(e, username=nil)
-    if e.user.admin? and username then
+  def forget(message, username=nil)
+    if message.opts[:user].admin? and username then
       "user #{@users.delete(user(username))} deleted"
     else
-      "user #{@users.delete(e.user)} deleted"
+      "user #{@users.delete(message.opts[:user].user)} deleted"
     end
   end
   
-  def permit(e, username, permission)
+  def permit(message, username, permission)
     if user = user!(username) then
       user.permit(permission)
       "permission added"
@@ -383,7 +382,7 @@ class Users <Plugin
     end
   end
   
-  def deny(e, username, permission)
+  def deny(message, username, permission)
     if user = user!(username) then
       user.deny(permission)
       'permission removed'
@@ -392,15 +391,19 @@ class Users <Plugin
     end
   end
   
-  def perms(e)
-    e.user.permissions.empty? ? "#{e.user} has no permissions" : e.user.permissions.join(', ')
+  def perms(message)
+    if message.opts[:user].permissions.empty?
+      "#{message.opts[:user]} has no permissions"
+    else
+      message.opts[:user].permissions.join(', ')
+    end
   end
   
-  def group(e, group)
+  def group(message, group)
     @users.reject{ |user| not user.permissions.include?(group) }.join(', ')
   end
   
-  def merge(e, username, other_username)
+  def merge(message, username, other_username)
     user = user!(username)
     other_user = user!(other_username)
     
@@ -413,45 +416,45 @@ class Users <Plugin
     end
   end
   
-  def password(e, password)
-    e.user.password = password
-    "#{e.user} password has been set to #{password}"
+  def password(message, password)
+    message.opts[:user].password = password
+    "#{message.opts[:user]} password has been set to #{password}"
   end
   
-  def login(e, username, password)
+  def login(message, username, password)
     user = user!(username)
     
     if user and user.password?(password) then
-      user.userhosts << e.userhost
-      "#{e.userhost} added to your account #{user}"
+      user.userhosts << message.opts[:user].userhost
+      "#{message.opts[:user].userhost} added to your account #{user}"
     else
       'user and/or password is incorrect'
     end
   end
   
-  def logout(e)
-    e.user.userhosts.delete(e.userhost)
-    "userhost #{e.userhost} removed from your account."
+  def logout(message)
+    message.opts[:user].userhosts.delete(message.user.userhost)
+    "userhost #{message.user.userhost} removed from your account."
   end
   
-  def userhosts(e)
-    e.user.userhosts.empty? ?  "#{e.user} has no userhosts" : e.user.userhosts.join(', ')
+  def userhosts(message)
+    message.opts[:user].userhosts.empty? ? "#{message.opts[:user]} has no userhosts" : message.opts[:user].userhosts.join(', ')
   end
   
-  def adduserhost(e, userhost)
-    e.user.userhosts << userhost
-    "#{userhost} added to #{e.user}"
+  def adduserhost(message, userhost)
+    message.opts[:user].userhosts << userhost
+    "#{userhost} added to #{message.opts[:user]}"
   end
   
-  def rmuserhost(e, userhost)
-    if e.user.userhosts.delete(userhost) then
-      "#{userhost} deleted from #{e.user}"
+  def rmuserhost(message, userhost)
+    if message.opts[:user].userhosts.delete(userhost) then
+      "#{userhost} deleted from #{message.opts[:user]}"
     else
-      "#{e.user} doesn't have #{userhost}"
+      "#{message.opts[:user]} doesn't have #{userhost}"
     end
   end
   
-  def names(e, search=nil)
+  def names(message, search=nil)
     users = @users.map{ |user| user.username }
     users = users.grep(/#{search}/i) if search
     
@@ -462,8 +465,8 @@ class Users <Plugin
     end
   end
   
-  def seen(e, username)
-    if username == e.user.username then
+  def seen(message, username)
+    if username == message.opts[:user].username then
       "Are you looking for yourself?"
     elsif user = user!(username) and user.seen then
       "#{username} last seen #{user.seen.since_words}"
@@ -472,43 +475,43 @@ class Users <Plugin
     end
   end
   
-  def sudo(e, username, command=nil)
+  def sudo(message, username, command=nil)
     user = user(username)
     
     if command then
-      new_event = e.clone
-      new_event.user = user
-      new_event.message = @delegate.plugin(:commands).cc + command
-      @delegate.event(self, new_event)
+      new_message = message.clone
+      new_message.opts[:user] = user
+      new_message.replace(zmb.plugin(:commands).cc + command)
+      zmb.plugin(:commands).irc_message(message.user.connection, new_message)
       nil
     else
-      e.user = user
+      message.opts[:user] = user
     end
   end
   
-  def location(e, loct=nil)
+  def location(message, loct=nil)
     if loct then
-      e.user.location = loct
-      "location set to #{e.user.location}"
+      message.opts[:user].location = loct
+      "location set to #{loct}"
     else
-      e.user.location
+      message.opts[:user].location
     end
   end
   
-  def email(e, em=nil)
-    if em then
-      e.user.email = em
-      "email set to #{e.user.email}"
+  def email(message, var=nil)
+    if var then
+      message.opts[:user].email = var
+      "email set to #{var}"
     else
-      e.user.email
+      message.opts[:user].email
     end
   end
   
-  def user_defaults_command(e)
+  def user_defaults_command(message)
     user_defaults.map{ |k,v| "#{k}: #{v}" }.join("\n")
   end
   
-  def set_default(e, key, value)
+  def set_default(message, key, value)
     value = case value
       when 'true' then true
       when 'false' then false
@@ -521,30 +524,30 @@ class Users <Plugin
     "#{key} added to defaults"
   end
   
-  def del_default(e, key)
+  def del_default(message, key)
     user_defaults.delete(key)
     "#{key} removed from defaults"
   end
   
-  def network(e, n, value=nil)
+  def network(message, n, value=nil)
     if value then
-      e.user.add_network(n, value)
+      message.opts[:user].add_network(n, value)
       "Username for #{User.networks[n][0]} set to #{value}" if User.networks.has_key?(n)
     else
-      if e.user.network?(n) then
-        "#{n}: #{e.user.network(n)} (#{e.user.network!(n)})"
+      if message.opts[:user].network?(n) then
+        "#{n}: #{message.opts[:user].network(n)} (#{message.opts[:user].network!(n)})"
       else
         "No username set for #{n}"
       end
     end
   end
   
-  def networks(e)
+  def networks(message)
     User.networks.keys.join(', ')
   end
   
-  def profile(e, username=nil)
-    username = e.user.username unless username
+  def profile(message, username=nil)
+    username = message.opts[:user].username unless username
     
     if (user = user!(username)) then
       user.networks.reject{ |n| not User.networks.has_key?(n) }.map{ |n| "#{User.networks[n][0]}: #{user.network(n)}" }.join(', ')
@@ -553,14 +556,14 @@ class Users <Plugin
     end
   end
   
-  def message(e, username, message)
+  def message(message, username, m)
     user = user!(username)
     
     if user then
-      if e.user.admin? then
-        user.send(message)
+      if message.opts[:user].admin? then
+        user.send(m)
       else
-        user.send("#{e.user.username}: message")
+        user.send("#{message.opts[:user].username}: #{m}")
       end
       
       "message sent"
@@ -569,9 +572,9 @@ class Users <Plugin
     end
   end
   
-  def broadcast(e, message)
+  def broadcast(message, m)
     @users.each do |user|
-      user.send(message)
+      user.send(m)
     end
     
     "Message broadcasted to all #{@users.count} users"
