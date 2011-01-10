@@ -44,33 +44,29 @@ class Commands <Plugin
       '|' => "\000p\000",
     }
   end
-  
-  def event(sender, e)
-    return if not e.message?
-    
-    if e.message[0, @cc.length] == @cc then
-      line = e.message[@cc.length..-1].clone
-    elsif e.delegate.respond_to?('nick') and e.message[0, (e.delegate.nick.length+2)] == (e.delegate.nick + ': ') then
-      line = e.message[(e.delegate.nick.length+2)..-1].clone
-    elsif e.private? then
-      line = e.message.clone
+
+  def irc_message(connection, message)
+    if message[0, @cc.length] == @cc then
+      line = message[@cc.length..-1].clone
+    elsif message =~ /^#{connection.nick}(:|,) (.+)/
+      line = $2
+    elsif message.private? then
+      line = message
     else
       return
     end
-    
-    return if e.name[0..0] == '*'
-    
+
     line.sub!('{time}', Time.now.strftime('%H:%M:%S'))
     line.sub!('{day}', Time.now.strftime('%d'))
     line.sub!('{weekday}', Time.now.strftime('%A'))
     line.sub!('{timezone}', Time.now.strftime('%Z'))
     line.sub!('{month}', Time.now.strftime('%B'))
     line.sub!('{year}', Time.now.strftime('%Y'))
-    line.sub!('{username}', e.user.username) if e.respond_to?('user') and e.user.respond_to?('username')
-    line.sub!('{points}', "#{e.bank.balance}") if e.respond_to?('bank') and e.bank.respond_to?('balance')
-    line.sub!('{channel}', e.channel) if e.respond_to?('channel')
-    line.sub!('{name}', e.name) if e.respond_to?('name')
-    line.sub!('{userhost}', e.userhost) if e.respond_to?('userhost')
+    line.sub!('{username}', message.opts[:user].username)
+    line.sub!('{points}', "#{message.opts[:bank].balance}") if message.opts.has_key?(:bank)
+    line.sub!('{channel}', message.channel.to_s) unless message.channel.nil?
+    line.sub!('{nick}', message.user.nick)
+    line.sub!('{userhost}', message.user.userhost)
     line.sub!('{rand}', String.random)
     
     # Encode escaped quotation marks and pipes
@@ -78,7 +74,7 @@ class Commands <Plugin
     
     # Check there are a even amount of "" and ''
     if ((line.count("'") % 2) == 1) and ((line.count('"') % 2) == 1) then
-      return e.reply('Incorrect amount of quotation marks\'s')
+      return message.reply('Incorrect amount of quotation marks\'s')
     end
     
     # Split the commands up
@@ -96,13 +92,13 @@ class Commands <Plugin
       
       cmd = args.delete_at(0)
       args << input if input
-      input = execute(cmd, e, args)
+      input = execute(cmd, message, args)
     end
     
-    e.reply(input) if input
+    message.reply(input) if input
   end
   
-  def execute(cmd, e, args=[])
+  def execute(cmd, message, args=[])
     return "#{cmd}: command not found" if not @cmds.has_key?(cmd)
     
     c = @cmds[cmd]
@@ -117,30 +113,32 @@ class Commands <Plugin
     
     # User permissions
     if c.has_key?(:permission) then
-      if not e.respond_to?('user')
+      if not message.opts.has_key?(:user)
         return 'user module not loaded'
-      elsif c[:permission] == 'authenticated' then
-        return 'permission denied' if not e.user.authenticated?
-      elsif not e.user.permission?(c[:permission])
+      end
+
+      if c[:permission] == 'authenticated' then
+        return 'permission denied' if not message.opts[:user].authenticated?
+      elsif not message.opts[:user].permission?(c[:permission])
         return 'permission denied'
       end
     end
     
     begin
       if c.has_key?(:instance) and c.has_key?(:symbol) then
-        c[:instance].send(c[:symbol], e, *args)
+        c[:instance].send(c[:symbol], message, *args)
       elsif c.has_key?(:proc) then
-        c[:proc].call(e, *args)
+        c[:proc].call(message, *args)
       else
-        delegate(self, "Bad command definition (#{cmd})")
+        delegate("Bad command definition (#{cmd})")
         "Bad command definition"
       end
     rescue ArgumentError
       'incorrect arguments'
     rescue Exception
-      @delegate.debug(c.has_key?(:instance) ? c[:instance] : self, "Command #{cmd} failed", $!)
+      zmb.debug(c.has_key?(:instance) ? c[:instance] : self, "Command #{cmd} failed", $!)
       
-      if e.respond_to?('user') and e.user.admin? and e.private? then
+      if message.opts.has_key?(:user) and message.opts[:user].admin? and message.private? then
         "#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}"
       else
         'command failed'
