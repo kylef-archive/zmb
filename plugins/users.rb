@@ -196,6 +196,10 @@ class AnonymousUser
   def to_s
     'nobody'
   end
+
+  def username
+    'nobody'
+  end
   
   def anonymous?
     true
@@ -249,7 +253,7 @@ class Users <Plugin
 
   def irc_message(connection, message)
     message.opts[:user] = user(message.user.userhost, true)
-    message.opts[:user].saw(message)
+    message.opts[:user].saw(message) if message.opts[:user].respond_to?(:saw)
   end
 
   command :activate do
