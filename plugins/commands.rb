@@ -1,48 +1,147 @@
-class Commands <Plugin
-  name :commands
-  description  "This plugin is needed for other plugins to function properly."
+module Commands
+  class CommandBuilder
+    attr_accessor :symbol
 
-  attr_accessor :cmds, :cc, :definitions
+    def self.attr_command(*attrs)
+      attrs.each do |attr|
+        class_eval %Q{
+          def #{attr}(val)
+            @command.#{attr} = val
+          end
+        }
+      end
+    end
+
+    attr_command :help, :example
+    attr_command :regex, :args
+    attr_command :permission
+
+    def initialize(symbol, &block)
+      @symbol = symbol
+      @block = block
+    end
+
+    def build(instance=nil)
+      @command  = Command.new(@symbol)
+      @command.instance = instance
+      instance_eval(&@block)
+      @command
+    end
+
+    def call(&block)
+      @command.block(&block)
+    end
+
+    def usage(var)
+      case var
+      when Hash
+        @command.usage, @command.example = var.shift
+      when String
+        @command.usage = var
+      end
+    end
+  end
+
+  class Command
+    attr_accessor :symbol, :instance, :permission
+    attr_accessor :help, :usage, :example
+    attr_accessor :regex, :args
+
+    def initialize(symbol)
+      @symbol = symbol
+    end
+
+    def block(&block)
+      @block = block
+    end
+
+    def call!(message, line=nil)
+      if @regex
+        if (rm = @regex.match(line))
+          call(message, *rm.captures)
+        else
+          "Invalid Arguments"
+        end
+      elsif not @args.nil?
+        if @args > 0
+          call(message, *line.split(' ', @args))
+        else
+          call(message)
+        end
+      elsif line.nil?
+        call(message)
+      else
+        call(message, line)
+      end
+    end
+
+    def call(*args)
+      if @instance
+        @instance.instance_exec(*args, &@block)
+      else
+        @block.call(*args)
+      end
+    end
+  end
+
+  def command(symbol, &block)
+    @command_builders ||= Array.new
+    @command_builders << CommandBuilder.new(symbol, &block)
+  end
+
+  def command!(symbol, &block)
+    @command_builders ||= Array.new
+
+    cb = CommandBuilder.new(symbol) do
+      call &block
+    end
+
+    @command_builders << cb
+  end
+
+  def commands
+    @command_builders || Array.new
+  end
+
+  def new(*args, &block)
+    obj = super
+    obj.instance_eval do
+      @commands = self.class.commands.collect{ |cb| cb.build(self) }
+      def commands; @commands; end
+    end
+    obj
+  end
+end
+
+class CommandsPlugin <Plugin
+  extend Commands
+
+  name :commands
+  description 'This plugin is needed for other plugins to function properly.'
+
+  attr_accessor :cc
   
   def initialize(sender, s={})
     super
 
-    @delegate = sender
-    @cmds = Hash.new
-    @definitions = Hash.new
-    
+    @cc = '.'
     @cc = s['cc'] if s.has_key?('cc')
-    @cc = '.' if @cc == nil
-    @definitions = s['definitions'] if s.has_key?('definitions')
-    
-    sender.plugins.each{ |p| plugin_loaded(p.class.name, p) }
-    
-    @definitions.each do |k,v|
-      @cmds[k] = {
-        :args => v[0],
-        :proc => (eval v[1])
-      }
-    end
+  end
 
-    plugin_loaded(self.class.name, self)
-  end
-  
   def settings
-    { 'cc' => @cc, 'definitions' => @definitions }
+    { 'cc' => @cc }
   end
-  
-  def self.wizard
-    {
-      'cc' => { 'help' => 'Control command, commands send to zmb must be prefixed with this.', 'default' => '.' },
-    }
+
+  def command(symbol) # Find a command via symbol
+    commands!.find{ |c| c.symbol == symbol }
   end
-  
-  def escape
-    {
-      '"' => "\000d\000",
-      "'" => "\000s\000",
-      '|' => "\000p\000",
-    }
+
+  def command!(name) # Find a command via a string
+    command(name.to_sym)
+  end
+
+  def commands! # Returns a Array of all commands
+    zmb.plugins.select{ |p| p.respond_to?('commands') }.collect{ |p| p.commands }.flatten
   end
 
   def irc_message(connection, message)
@@ -51,7 +150,7 @@ class Commands <Plugin
     elsif message =~ /^#{connection.nick}(:|,) (.+)/
       line = $2
     elsif message.private? then
-      line = message
+      line = message.clone
     else
       return
     end
@@ -62,243 +161,180 @@ class Commands <Plugin
     line.sub!('{timezone}', Time.now.strftime('%Z'))
     line.sub!('{month}', Time.now.strftime('%B'))
     line.sub!('{year}', Time.now.strftime('%Y'))
-    line.sub!('{username}', message.opts[:user].username)
+    line.sub!('{username}', message.opts[:user].username) if message.opts.has_key?(:user)
     line.sub!('{points}', "#{message.opts[:bank].balance}") if message.opts.has_key?(:bank)
     line.sub!('{channel}', message.channel.to_s) unless message.channel.nil?
     line.sub!('{nick}', message.user.nick)
     line.sub!('{userhost}', message.user.userhost)
     line.sub!('{rand}', String.random)
-    
-    # Encode escaped quotation marks and pipes
-    escape.each{ |k,v| line.gsub!("\\" + k, v) }
-    
-    # Check there are a even amount of "" and ''
-    if ((line.count("'") % 2) == 1) and ((line.count('"') % 2) == 1) then
-      return message.reply('Incorrect amount of quotation marks\'s')
-    end
-    
-    # Split the commands up
-    commands = line.split('|')
+ 
     input = nil
-    
-    commands.each do |command|
-      command = command.reverse.chomp.reverse
-      
-      # Split strings by quotation marks and spaces
-      args = command.split(/"([^"]*)"|'([^']*)'|\s/).reject{ |x| x.empty? }
-      
-      # Decode escape quotation marks and pipes inside the args
-      args.each{ |arg| escape.each{ |k,v| arg.gsub!(v, k) } }
-      
-      cmd = args.delete_at(0)
-      args << input if input
-      input = execute(cmd, message, args)
+    line.sub!('\|', "\000p\000")
+
+    line.split('|').each do |l|
+      if l.strip =~ /^(\S+)(\s+(.+))?$/
+        c = $1
+        args = Array.new
+        args << $3.strip unless $3.nil?
+        args << input.strip unless input.nil?
+
+        if args.count > 0
+          args = args.join(' ')
+          args.sub!("\000p\000", '|')
+          input = execute!(c, message, args)
+        else
+          input = execute!(c, message)
+        end
+      end
     end
     
     message.reply(input) if input
   end
-  
-  def execute(cmd, message, args=[])
-    return "#{cmd}: command not found" if not @cmds.has_key?(cmd)
-    
-    c = @cmds[cmd]
-    
-    if c[:args] == 0 then
-      args = Array.new
-    elsif args.size > c[:args]
-      a = args.first c[:args]-1 # Take one under amount of commands
-      a << args[c[:args]-1..-1].join(' ')
-      args = a
-    end
-    
-    # User permissions
-    if c.has_key?(:permission) then
-      if not message.opts.has_key?(:user)
-        return 'user module not loaded'
+
+  def execute(symbol, message, line=nil)
+    c = command(symbol)
+
+    if c
+      # Check permissions
+      if not c.permission.nil?
+        return 'Users plugin not found' unless message.opts.has_key?(:user)
+
+        if not message.opts[:user].permission?(c.permission)
+          return 'Permission denied'
+        end
       end
 
-      if c[:permission] == 'authenticated' then
-        return 'permission denied' if not message.opts[:user].authenticated?
-      elsif not message.opts[:user].permission?(c[:permission])
-        return 'permission denied'
+      begin
+        c.call!(message, line)
+      rescue ArgumentError
+        "#{symbol}: Incorrect arguments"
+      rescue Exception
+        zmb.debug(c.instance.nil? ? self : c.instance, "#{symbol}: Command failed to execute", $!)
+        "#{symbol}: Failed to execute"
       end
+    else
+      "#{symbol}: Command not found"
     end
-    
-    begin
-      if c.has_key?(:instance) and c.has_key?(:symbol) then
-        c[:instance].send(c[:symbol], message, *args)
-      elsif c.has_key?(:proc) then
-        c[:proc].call(message, *args)
+  end
+
+  def execute!(name, message, line=nil)
+    execute(name.to_sym, message, line)
+  end
+
+  # Commands
+
+  command :cc do
+    usage '[control-character]' => '!'
+    permission :admin
+
+    call do |m, var|
+      if var.nil?
+        "Control command is set to '#{@cc}'"
       else
-        delegate("Bad command definition (#{cmd})")
-        "Bad command definition"
-      end
-    rescue ArgumentError
-      'incorrect arguments'
-    rescue Exception
-      zmb.debug(c.has_key?(:instance) ? c[:instance] : self, "Command #{cmd} failed", $!)
-      
-      if message.opts.has_key?(:user) and message.opts[:user].admin? and message.private? then
-        "#{$!.message}\n#{$!.inspect}\n#{$!.backtrace[0..2].join("\n")}"
-      else
-        'command failed'
+        @cc = var
+        "Control command has been changed to '#{@cc}'"
       end
     end
   end
-  
-  def plugin_loaded(plugin_name, p)
-    if p.respond_to?('commands') then
-      p.commands.each do |k,v|
-        @cmds[k] = {
-          :instance => p,
-          :args => 1
-        }
-        
-        if v.class == Hash then
-          @cmds[k].merge(v)
+
+  command! :help do |m, command_name|
+    if command_name
+      c = command!(command_name)
+
+      if c
+        help = Array.new
+        help << "#{command_name}: #{c.help}" unless c.help.nil?
+        help << "Usage: #{c.usage}" unless c.usage.nil?
+        help << "Example: #{c.example}" unless c.example.nil?
+
+        if help.size > 0
+          help.join("\n")
         else
-          v = [v] if v.class != Array
-          v.each do |item|
-            @cmds[k][:args] = item if item.class == Fixnum
-            @cmds[k].merge!(item) if item.class == Hash
-            @cmds[k][:symbol] = item if item.class == Symbol
-            @cmds[k][:proc] = item if item.class == Proc
-          end
+          "#{command_name}: No help availible for this command"
         end
-        
-        @cmds[k][:args] = @cmds[k][:usage].split(' ').count if @cmds[k].has_key?(:usage)
-      end
-    end
-  end
-  
-  def plugin_unloaded(plugin_name, p)
-    @cmds = @cmds.reject{ |k,v| v[:instance] == p }
-  end
-  
-  def commands
-    {
-      'help' => :help,
-      'pcommands' => [:plugin_commands, { :help => 'List all commands availible for a plugin.'}],
-      'which' => [:which, { :help => 'Find which plugin handles a command' }],
-      'cc' => [:control_command, {
-        :permission => 'admin',
-        :help => 'Set the control character for commands' }],
-      'eval' => [:evaluate, {
-        :permission => 'admin',
-        :help => 'Evaluate ruby code' }],
-      'peval' => [:plugin_evaluate, 2, {
-        :permission => 'admin',
-        :help => 'Evaluate ruby on on a plugin',
-        :usage => 'commands @cc' }],
-      'define' => [:define, {
-        :permission => 'admin',
-        :help => 'Dynamically define a command',
-        :usage => 'command arguments block',
-        :example => 'ping nil "pong"'
-      }],
-      'undefine' => [:undefine, {
-        :permission => 'admin',
-        :help => 'Undefine a command',
-        :usage => 'command',
-        :example => 'ping'
-      }]
-    }
-  end
-  
-  def help(e, command=nil)
-    if command then
-      h = []
-      
-      if @cmds.has_key?(command) then
-        h << "#{command}: #{@cmds[command][:help]}" if @cmds[command].has_key?(:help)
-        h << "Usage: #{command} #{@cmds[command][:usage]}" if @cmds[command].has_key?(:usage)
-        h << "Example: #{command} #{@cmds[command][:example]}" if @cmds[command].has_key?(:example)
-      end
-      
-      if h.size == 0 then
-        'Command not found or no help availible for the command.'
       else
-        h.join("\n")
+        "#{command_name}: Command not found"
       end
     else
-      cmds = @cmds.reject{ |k,v| (v.has_key?(:permission)) and not e.user.permission?(v[:permission]) }
-      cmds.keys.join(', ')
+      # TODO: Only display commands a user has permission to execute
+      commands!.collect{ |c| c.symbol.to_s }.join(', ')
     end
   end
-  
-  def plugin_commands(e, plugin_name)
-    if p = @delegate.plugin(plugin_name.to_sym)
-      if p.respond_to?('commands') then
-        p.commands.keys.join(', ')
-      else
-        "No commands availible for #{plugin_name}"
-      end 
-    else
-      "No plugin found for #{plugin_name}"
+
+  command :which do
+    help 'Find which plugin a command belongs to.'
+    usage 'command' => 'help'
+    regex /^(\S+)$/
+
+    call do |m, command_name|
+        c = command!(command_name)
+
+        if c and c.instance.class.respond_to?(:name)
+        "#{c.instance.class.name}"
+       elsif c
+         "#{command_name} doesn't belong to any plugin"
+       else
+         "#{command_name}: Command not found"
+       end
     end
   end
-  
-  def which(e, command)
-    if @cmds.has_key?(command) then
-      if @cmds[command].has_key?(:instance)
-        cmds[command][:instance].plugin
+
+  command :commands do
+    help 'List all availible commands for a plugin'
+    usage 'plugin' => 'irc'
+    regex /^(\S+)$/
+
+    call do |m, plugin_name|
+      p = plugin!(plugin_name)
+
+      if p
+        if not p.respond_to?(:commands)
+          "#{plugin_name}: No commands availible for this plugin."
+        elsif p.commands.count > 0
+          p.commands.collect{ |c| c.symbol.to_s }.join(', ')
+        else
+          "#{plugin_name}: No commands availible for this plugin."
+        end
       else
-        "No plugin for command #{command}"
+        "#{plugin_name}: Plugin not found."
       end
-    else
-      "#{command}: Command not found"
     end
   end
-  
-  def control_command(e, cc=nil)
-    if cc then
-      @cc = cc
-    else
-      @cc = '.'
-    end
-    
-    "Control command set to #{@cc}"
-  end
-  
-  def evaluate(e, string)
-    begin
-      "#{eval string}"
-    rescue Exception
-      "#{$!.message}\n#{$!.inspect}"
-    end
-  end
-  
-  def plugin_evaluate(e, plugin_name, string)
-    begin
-      if p = @delegate.plugin(plugin_name.to_sym) then
-        "#{p.instance_eval string}"
-      else
-        "#{plugin_name}: No such plugin"
+
+  command :eval do
+    help 'Execute ruby code'
+    example '1 * 2'
+    permission :admin
+
+    call do |m, string|
+      begin
+        "#{eval string}"
+      rescue Exception
+        "#{$!.message}\n#{$!.inspect}"
       end
-    rescue Exception
-      "#{$!.message}\n#{$!.inspect}"
     end
   end
-  
-  def define(e, command, arguments, block)
-    arguments = arguments.split_seperators
-    arguments = [] if arguments.include?('nil') or arguments.include?('none')
-    arguments.insert(0, 'e')
-    
-    @cmds[command] = {
-      :args => arguments.count - 1,
-      :proc => (eval "lambda {|#{arguments.join(',')}| #{block}}")
-    }
-    
-    @definitions[command] = [arguments.count-1, "lambda {|#{arguments.join(',')}| #{block}}"]
-    
-    "#{command} has been defined"
+
+  command :peval do
+    help 'Execute ruby code from within a plugin'
+    example 'irc @connections'
+    permission :admin
+    regex /^(\S+)\s+(.+)$/
+
+    call do |m, name, string|
+      p = plugin!(name)
+
+      if p
+        begin
+          "#{p.instance_eval string}"
+        rescue Exception
+          "#{$!.message}\n#{$!.inspect}"
+        end
+      else
+        "#{name}: Plugin not found"
+      end
+    end
   end
-  
-  def undefine(e, command)
-    @cmds.delete(command)
-    @definitions.delete(command)
-    
-    "#{command} removed"
-  end
+
+  # TODO: Re-implement command definitions
 end
