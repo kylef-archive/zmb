@@ -51,7 +51,7 @@ module IRC
     end
 
     def message(msg)
-      @server.write("PRIVMSG #{@nick} :#{msg}")
+      @server.privmsg(@nick, msg)
     end
 
     def ourself?
@@ -119,7 +119,7 @@ module IRC
     end
 
     def message(msg)
-      @server.write("PRIVMSG #{@name} :#{msg}")
+      @server.privmsg(@name, msg)
     end
 
     def part
@@ -321,6 +321,15 @@ module IRC
 
     def clean_trailing(line)
       line.gsub(/^:/, '')
+    end
+
+    # Sending
+    
+    def privmsg(recipient, message)
+      message = message.split("\n") if message.respond_to?(:split)
+      message.each do |msg|
+        write "PRIVMSG #{recipient} :#{msg}"
+      end
     end
 
     # IRC Line handlers
