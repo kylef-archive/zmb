@@ -35,6 +35,14 @@ class Plugin
     zmb.plugins
   end
 
+  def plugin(symbol)
+    plugins.find{ |p| p.class.name == symbol }
+  end
+
+  def plugin!(name)
+    plugin(name.to_sym)
+  end
+
   def debug(message, exception=nil)
     zmb.debug(self, message, exception) if @zmb
   end
