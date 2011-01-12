@@ -306,7 +306,7 @@ class Users <Plugin
         "An account with the #{username} is already registered, please try a different username"
       else
         u = User.new(@user_defaults.merge({'username' => username}))
-        u.userhosts << message.user.userhost unless message.opts[:user].admin?
+        u.userhosts << m.user.userhost unless m.opts[:user].admin?
         @users << u
 
         "Hello, #{u.username}"
