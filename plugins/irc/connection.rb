@@ -199,9 +199,11 @@ module IRC
 
     def connect
       if @host and @port and not connected?
+        debug('IRC Connect')
         @socket = TCPSocket.new(@host, @port)
         @plugin.zmb.socket_add(self, @socket)
 
+        debug('IRC Registration')
         post(:irc_registration, self) { return }
 
         write "PASS #{@password}" if @password
@@ -211,6 +213,7 @@ module IRC
     end
 
     def disconnected(sender, socket)
+      debug('IRC Disconnected')
       @socket = nil if @socket == socket
       post(:irc_disconnected, self) { return }
       add_timer(:connect, 5) # Reconnect
