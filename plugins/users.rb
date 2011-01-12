@@ -1,3 +1,5 @@
+require 'commands'
+
 class Event
   attr_accessor :user, :users
 end
@@ -162,7 +164,11 @@ class User
   end
   
   def permission?(permission)
-    admin? or permissions.include?(permission)
+    if permission == :authenticated
+      true
+    else
+      admin? or permissions.include?(permission)
+    end
   end
   
   def permit(permission)
@@ -209,6 +215,8 @@ class AnonymousUser
 end
 
 class Users <Plugin
+  extend Commands
+
   name :users
   description 'user accounts/permissions system'
 
@@ -244,308 +252,391 @@ class Users <Plugin
     message.opts[:user].saw(message)
   end
 
-  def commands
-    {
-      'activate' => [:activate, 1, { :help => 'Activate a user account' }],
-      'deactivate' => [:deactivate, 1, { :help => 'Deactivate a user account' }],
-      'meet' => [:meet, 1, { :help => 'Meet a user' }],
-      'forget' => [:forget, 1, {
-        :help => 'Forget about a user',
-        :permission => 'authenticated' }],
-      'permit' => [:permit, 2, {
-        :permission => 'admin',
-        :help => 'Add a permission to a user',
-        :usage => '<user> <permission>',
-        :example => 'zynox admin' }],
-      'deny' => [:deny, 2, {
-        :permission => 'admin',
-        :help => 'Remove a permission from a user',
-        :usage => '<user> <permission>',
-        :example => 'zynox admin' }],
-      'perms' => [:perms, 0, {
-        :permission => 'authenticated',
-        :help => 'List all the permissions you have' }],
-      'group' => [:group, 1, {
-        :permission => 'admin' }],
-      'merge' => [:merge, 2, {
-        :permission => 'admin',
-        :help => 'Merge two users together, give user a the permissions and useragents of b and then delete b',
-        :usage => 'user_a user_b'}],
-      'password' => [:password, 1, {
-        :permission => 'authenticated',
-        :help => 'Set the password for your account',
-        :usage => 'password' }],
-      'login' => [:login, 2, {
-        :help => 'Login to your account, adding your current userhost to your account.',
-        :usage => 'username password' }],
-      'logout' => [:logout, 0, {
-        :permission => 'authenticated',
-        :help => 'Logout from your account, this will remove your current userhost from your account.' }],
-      'whoami' => [lambda { |m| "#{m.ops[:user]}" }, 0, { :help => 'Who are you logged in as?' }],
-      'userhosts' => [:userhosts, 0, {
-        :permission => 'authenticated',
-        :help => 'List all the userhosts associated with your account.' }],
-      'adduserhost' => [:adduserhost, 1, {
-        :permission => 'authenticated',
-        :help => 'Add a userhost to your account.' }],
-      'rmuserhost' => [:rmuserhost, 1, {
-        :permission => 'authenticated',
-        :help => 'Remove a userhost to your account.' }],
-      'names' => [:names, 1, {
-        :help => 'List all the users',
-        :usage => '<search>' }],
-      'seen' => [:seen, 1, {
-        :help => 'When was a user last seen?',
-        :usage => 'user' }],
-      'sudo' => [:sudo, 2, {
-        :permission => 'admin',
-        :help => 'Execute a command as another user.',
-        :usage => 'user command',
-        :example => 'zynox whoami' }],
-      'location' => [:location, 1, {
-        :permission => 'authenticated',
-        :help => 'Set your location' }],
-      'email' => [:email, 1, {
-        :permission => 'authenticated',
-        :help => 'Set your email' }],
-      'user-defaults' => [:user_defaults_command, 0],
-      'user-default' => [:set_default, 2, {
-        :permission => 'admin',
-        :help => 'Set a user default',
-        :usage => 'key value',
-        :example => 'active false' }],
-      'rm-user-default' => [:del_default, 1, {
-        :permission => 'admin',
-        :help => 'Remove a user default',
-        :usage => 'key',
-        :example => 'active' }],
-      'network' => [:network, 2, {
-        :permission => 'authenticated',
-        :usage => 'lastfm zynox' }],
-      'networks' => [:networks, 0, { :help => 'List all availible networks' }],
-      'profile' => [:profile, 1, {
-        :permission => 'authenticated' }],
-      'message' => [:message, 2, { :permission => 'authenticated' }],
-      'broadcast' => [:broadcast, {
-        :permission => 'admin',
-        :help => 'Broadcast a message to every user',
-        :usage => 'message' }],
-    }
+  command :activate do
+    help 'Activate a users account'
+    usage 'username' => 'kylef'
+    permission :admin
+    regex /^(\S+)$/
+
+    call do |m, username|
+      user = user!(username)
+      
+      if user
+        user.activate
+        "#{username} activated"
+      else
+        "#{username} does not exist."
+      end
+    end
   end
-  
-  def activate(message, username)
-    if user = user!(username) then
-      user.activate
-      "#{username} active"
-    else
-      "#{username} does not exist"
+
+  command :deactivate do
+    help 'Deactivate a users account'
+    usage 'username' => 'kylef'
+    permission :admin
+    regex /^(\S+)$/
+
+    call do |m, username|
+      user = user!(username)
+      
+      if user
+        user.deactivate
+        "#{username} deactivated"
+      else
+        "#{username} does not exist."
+      end
+    end
+  end
+
+  command :meet do
+    help 'Meet a user'
+
+    call do |m, username|
+      username = m.user.nick unless m.opts[:user].admin?
+
+      if m.opts[:user].authenticated?
+        "#{m.ops[:user].username}: You already have a useraccount"
+      elsif username == 'nobody'
+        'The username `nobody` is not allowed. Please try a different username.'
+      elsif user!(username)
+        "An account with the #{username} is already registered, please try a different username"
+      else
+        u = User.new(@user_defaults.merge({'username' => username}))
+        u.userhosts << message.user.userhost unless message.opts[:user].admin?
+        @users << u
+
+        "Hello, #{u.username}"
+      end
+    end
+  end
+
+  command!(:whoami){ |m| "#{m.opts[:user]}" }
+
+  command :forget do
+    help 'Forget a user'
+    permission :authenticated
+
+    call do |m, username|
+      if m.opts[:user].admin? and username
+        u = username!(username)
+        if u
+          "User #{@users.delete(u)} deleted."
+        else
+          "#{username}: User not found."
+        end
+      else
+        "User #{@users.delete(message.opts[:user])} deleted."
+      end
+    end
+  end
+
+  command :permit do
+    help 'Grant a permission to a user'
+    usage 'user permission' => 'kylef admin'
+    regex /^(\S+)\s+(\S+)$/
+    permission :admin
+
+    call do |m, user, permission|
+      u = user!(username)
+
+      if u
+        user.permit(permission)
+        "#{username} has been granted #{permission}"
+      else
+        "#{username} does not exist."
+      end
+    end
+  end
+
+  command :deny do
+    help 'Revoke a permission from a user'
+    usage 'user permission' => 'kylef admin'
+    regex /^(\S+)\s+(\S+)$/
+    permission :admin
+
+    call do |m, user, permission|
+      u = user!(username)
+
+      if u
+        user.deny(permission)
+        "#{permission} has been removed from #{username}."
+      else
+        "#{username} does not exist."
+      end
     end
   end
   
-  def deactivate(message, username)
-    if user = user!(username) then
-      user.deactivate
-      "#{username} deactivated"
-    else
-      "#{username} does not exist"
+  command :perms do
+    help 'List all the permissions you have.'
+    permission :authenticated
+
+    call do |m|
+      if m.opts[:user].permissions.empty?
+        "You do not have any permissions"
+      else
+        m.opts[:user].permissions.join(', ')
+      end
     end
   end
-  
-  def meet(message, username=nil)
-    username = message.user.nick if not message.opts[:user].admin?
+
+  command :group do
+    help 'List all users who have the matching permission'
+    usage 'perm' => 'admin'
+    permission :admin
+
+    call do |m, perm|
+      @users.select{ |u| u.permission?(perm) }.join(', ')
+    end
+  end
+
+  command :merge do
+    help 'Merge two users together, give user a the permissions and useragents of b and then delete b'
+    usage 'user_a user_b'
+    permission :admin
+    regex /^(\S+)\s+(\S+)$/
+
+    call do |m, user_a, user_b|
+      a = user!(user_a)
+      b = user!(user_b)
+
+      if a and b
+        a.concat user_b
+        @users.delete(b)
+        "#{b} has been merged into #{a}"
+      else
+        'User(s) do not exist'
+      end
+    end
+  end
+
+  command :password do
+    help 'Set the password for your account.'
+    usage 'password' => 'test'
+    permission :authenticated
+    regex /^(\S+)$/
+
+    call do |m, password|
+      message.opts[:user].password = password
+      "#{message.opts[:user]} password has been set to #{password}"
+    end
+  end
+
+  command :login do
+    help 'Login to your account, adding your current userhost to your account.'
+    usage 'username password' => 'kylef test'
+    regex /^(\S+)\s+(\S+)$/
+
+    call do |m, username, password|
+      user = user!(username)
+
+      if user and user.password?(password)
+        user.userhosts << m.user.userhost
+        "#{m.user.userhost} has been added to your account #{username}"
+      else
+        "username and/or password is incorrect"
+      end
+    end
+  end
+
+  command :logout do
+    help 'Logout from your account, this will remove your current userhost from your account.'
+    permission :authenticated
     
-    if username == 'nobody' then
-      "nobody is a excluded name"
-    elsif not user!(username) then
-      @users << user = User.new(@user_defaults.merge({'username' => username}))
-      user.userhosts << message.user.userhost if not message.opts[:user].admin?
-      "Hello #{user}"
-    else
-      "You already have an account #{message.opts[:user]}"
+    call do |m|
+      message.opts[:user].userhosts.delete(message.user.userhost)
+      "The userhost #{message.user.userhost} has been removed from your account"
     end
   end
-  
-  def forget(message, username=nil)
-    if message.opts[:user].admin? and username then
-      "user #{@users.delete(user(username))} deleted"
-    else
-      "user #{@users.delete(message.opts[:user].user)} deleted"
+
+  command :userhosts do
+    help 'List all the userhosts associated with your account.'
+    permission :authenticated
+
+    call do |m|
+      if m.opts[:user].userhosts.empty?
+        "#{m.opts[:user]} has no userhosts"
+      else
+        m.opts[:user].userhosts.join(', ')
+      end
     end
   end
-  
-  def permit(message, username, permission)
-    if user = user!(username) then
-      user.permit(permission)
-      "permission added"
-    else
-      "#{username} does not exist"
+
+  command :adduserhost do
+    help 'Add a userhost to your account.'
+    usage 'userhost' => 'kylef@localhost'
+    permission :authenticated
+    regex /^(\S+)$/
+
+    call do |m, userhost|
+      m.opts[:user].userhosts << userhost
+      "#{userhost} added to #{m.opts[:user]}"
     end
   end
-  
-  def deny(message, username, permission)
-    if user = user!(username) then
-      user.deny(permission)
-      'permission removed'
-    else
-      "#{username} does not exist"
+
+  command :rmuserhost do
+    help 'Remove a userhost from your account.'
+    usage 'userhost' => 'kylef@localhost'
+    permission :authenticated
+    regex /^(\S+)$/
+
+    call do |m, userhost|
+      if m.opts[:user].userhosts.delete(userhost)
+        "#{userhost} remove from #{m.opts[:user]}"
+      else
+        "#{userhost} not found for #{m.opts[:user]}"
+      end
     end
   end
-  
-  def perms(message)
-    if message.opts[:user].permissions.empty?
-      "#{message.opts[:user]} has no permissions"
-    else
-      message.opts[:user].permissions.join(', ')
+
+  command :names do
+    help 'List all registered users'
+    usage 'search' => 'ky'
+
+    call do |m, search|
+      users = @users.map{ |u| u.username }
+      users = users.grep(/#{search}/i) if search
+
+      if users.empty?
+        "No users found"
+      else
+        users.join(', ')
+      end
     end
   end
-  
-  def group(message, group)
-    @users.reject{ |user| not user.permissions.include?(group) }.join(', ')
-  end
-  
-  def merge(message, username, other_username)
-    user = user!(username)
-    other_user = user!(other_username)
-    
-    if user and other_user then
-      user.concat other_user 
-      @users.delete other_user
-      "#{other_user} now merged into #{user}"
-    else
-      'User(s) do not exist'
+
+  command :seen do
+    help 'When was a user last seen?'
+    usage 'user' => 'kylef'
+    regex /^(\S+)$/
+
+    call do |m, username|
+      if username == m.opts[:user].username
+        "Are you looking for yourself?"
+      elsif (user = user!(username)) and user.seen
+        "#{username} was last seen #{user.seen.since_words}"
+      else
+        "#{username} has never been seen."
+      end
     end
   end
-  
-  def password(message, password)
-    message.opts[:user].password = password
-    "#{message.opts[:user]} password has been set to #{password}"
-  end
-  
-  def login(message, username, password)
-    user = user!(username)
-    
-    if user and user.password?(password) then
-      user.userhosts << message.opts[:user].userhost
-      "#{message.opts[:user].userhost} added to your account #{user}"
-    else
-      'user and/or password is incorrect'
+
+  command :sudo do
+    help 'Execute a command as another user.'
+    usage 'user [command]' => 'kylef whoami'
+    permission :admin
+    regex /^(\S+)(\s+(\S+)?)$/
+
+    call do |m, username, whitespace, command|
+      user = user!(username)
+
+      if not user
+        "#{username}: User not found"
+      elsif command
+        nmessage = message.clone
+        nmessage.opts[:user] = user
+        nmessage.replace(zmb.plugin(:commands).cc + command)
+        zmb.plugin(:commands).irc_message(message.user.connection, nmessage)
+      else
+        m.opts[:user] = user
+      end
     end
   end
-  
-  def logout(message)
-    message.opts[:user].userhosts.delete(message.user.userhost)
-    "userhost #{message.user.userhost} removed from your account."
-  end
-  
-  def userhosts(message)
-    message.opts[:user].userhosts.empty? ? "#{message.opts[:user]} has no userhosts" : message.opts[:user].userhosts.join(', ')
-  end
-  
-  def adduserhost(message, userhost)
-    message.opts[:user].userhosts << userhost
-    "#{userhost} added to #{message.opts[:user]}"
-  end
-  
-  def rmuserhost(message, userhost)
-    if message.opts[:user].userhosts.delete(userhost) then
-      "#{userhost} deleted from #{message.opts[:user]}"
-    else
-      "#{message.opts[:user]} doesn't have #{userhost}"
+
+  command :location do
+    help 'Set your location'
+    permission :authenticated
+
+    call do |m, location|
+      if location
+        m.opts[:user].location = location
+        "Your location has been set to #{location}."
+      else
+        m.opts[:user].location
+      end
     end
   end
-  
-  def names(message, search=nil)
-    users = @users.map{ |user| user.username }
-    users = users.grep(/#{search}/i) if search
-    
-    if users.empty? then
-      "no users found"
-    else
-      users.join(', ')
+
+  command :email do
+    help 'Set your email'
+    permission :authenticated
+
+    call do |m, email|
+      if email
+        m.opts[:user].email = email
+        "Your email address has been set to #{email}"
+      else
+        m.opts[:user].email
+      end
     end
   end
-  
-  def seen(message, username)
-    if username == message.opts[:user].username then
-      "Are you looking for yourself?"
-    elsif user = user!(username) and user.seen then
-      "#{username} last seen #{user.seen.since_words}"
-    else
-      "#{username} has never been seen"
+
+  command :"user-defaults" do
+    help 'List all the user defaults'
+    permission :admin
+
+    call do |m|
+      user_defaults.map{ |k,v| "#{k}: #{v}" }.join("\n")
     end
   end
-  
-  def sudo(message, username, command=nil)
-    user = user(username)
-    
-    if command then
-      new_message = message.clone
-      new_message.opts[:user] = user
-      new_message.replace(zmb.plugin(:commands).cc + command)
-      zmb.plugin(:commands).irc_message(message.user.connection, new_message)
-      nil
-    else
-      message.opts[:user] = user
-    end
-  end
-  
-  def location(message, loct=nil)
-    if loct then
-      message.opts[:user].location = loct
-      "location set to #{loct}"
-    else
-      message.opts[:user].location
-    end
-  end
-  
-  def email(message, var=nil)
-    if var then
-      message.opts[:user].email = var
-      "email set to #{var}"
-    else
-      message.opts[:user].email
-    end
-  end
-  
-  def user_defaults_command(message)
-    user_defaults.map{ |k,v| "#{k}: #{v}" }.join("\n")
-  end
-  
-  def set_default(message, key, value)
-    value = case value
+
+  command :"user-default" do
+    help 'Set a user default'
+    usage 'key value' => 'activate no'
+    permission :admin
+    regex /^(\S+)\s+(\S+)$/
+
+    call do |m, key, value|
+      value = case value
       when 'true' then true
       when 'false' then false
       when 'yes' then true
       when 'no' then false
       else value
+      end
+
+      user_defaults[key] = value
+      "#{key} added to defaults"
     end
-    
-    user_defaults[key] = value
-    "#{key} added to defaults"
   end
-  
-  def del_default(message, key)
-    user_defaults.delete(key)
-    "#{key} removed from defaults"
+
+  command :"rm-user-default" do
+    help 'Remove a user default'
+    usage 'key' => 'active'
+    permission :admin
+    regex /^(\S+)$/
+
+    call do |m, key|
+      user_defaults.delete(key)
+      "#{key} removed from defaults"
+    end
   end
-  
-  def network(message, n, value=nil)
-    if value then
-      message.opts[:user].add_network(n, value)
-      "Username for #{User.networks[n][0]} set to #{value}" if User.networks.has_key?(n)
-    else
-      if message.opts[:user].network?(n) then
-        "#{n}: #{message.opts[:user].network(n)} (#{message.opts[:user].network!(n)})"
+
+  command :network do
+    help 'Set a username for a network, see `networks` for a list of networks'
+    usage 'network [username]' => 'lastfm kylef'
+    permission :authenticated
+    regex /^(\S+)(\s+(\S+)?)$/
+
+    call do |m, network, value|
+      if value
+        m.opts[:user].add_network(network, value)
+        "#{network} has been set to #{value}"
       else
-        "No username set for #{n}"
+        if m.opts[:user].network?(network)
+          "#{network}: #{m.opts[:user].network(network)} (#{m.opts[:user].network!(network)})"
+        else
+          "This network has not been set"
+        end
       end
     end
   end
-  
-  def networks(message)
-    User.networks.keys.join(', ')
+
+  command :networks do
+    help 'List all availible networks'
+
+    call { |m| User.networks.keys.join(', ') }
   end
-  
+
   def profile(message, username=nil)
     username = message.opts[:user].username unless username
     
@@ -555,28 +646,47 @@ class Users <Plugin
       "No such user"
     end
   end
-  
-  def message(message, username, m)
-    user = user!(username)
-    
-    if user then
-      if message.opts[:user].admin? then
-        user.send(m)
+
+  command :profile do
+    call do |m, username|
+      username = m.opts[:user].username unless username
+
+      if (user = user!(username))
+        user.networks.select{ |n| User.networks.has_key?(n) }.map{ |n| "#{User.networks[n][0]}: #{user.network(n)}" }.join(', ')
       else
-        user.send("#{message.opts[:user].username}: #{m}")
+        "#{username}: User not found"
       end
-      
-      "message sent"
-    else
-      "no such user"
     end
   end
-  
-  def broadcast(message, m)
-    @users.each do |user|
-      user.send(m)
+
+  command :message do
+    help 'Send a message to another user'
+    permission :authenticated
+    regex /^(\S+)\s+(\S+)$/
+
+    call do |m, username, message|
+      user = user!(username)
+
+      if user
+        user.send("#{m.opts[:user]}: #{message}")
+        "Message sent to #{username}"
+      else
+        "#{username}: User not found"
+      end
     end
-    
-    "Message broadcasted to all #{@users.count} users"
+  end
+
+  command :broadcast do
+    help 'Broadcast a message to every user'
+    usage 'message' => 'Hello everyone!'
+    permission :admin
+
+    call do |m, content|
+      @users.each do |user|
+        user.send(content)
+      end
+
+      "Message broadcasted to all #{@users.count} users"
+    end
   end
 end
