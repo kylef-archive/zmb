@@ -1,53 +1,55 @@
 require 'resolv'
 require 'socket'
 
+require 'commands'
+
 class DNS <Plugin
+  extend Commands
+
   name :dns
   description 'resolve dns'
 
-  def initialize(sender, s) ;end
-  
-  def commands
-    {
-      'dns' => [lambda { |e, host| Resolv.new.getaddress(host) }, {
-        :help => 'Lookup the ip address for a domain',
-        :usage => 'domain',
-        :example => 'apple.com' }],
-      'rdns' => [:rdns, {
-        :help => 'Perform a reverse dns on a host',
-        :usage => 'ip',
-        :example => '17.149.160.49' }],
-      'whois' => [:whois, 1, {
-        :help => 'perform a whois on a domain',
-        :usage => 'domain',
-        :example => 'apple.com' }],
-    }
+  command :dns do
+    help 'Lookup the IP address for a domain name'
+    usage 'domain' => 'apple.com'
+
+    call { |m, host| Resolv.new.getaddress(host) }
   end
-  
-  def rdns(e, ip)
-    begin
-      Resolv.new.getname(ip)
-    rescue Resolv::ResolvError
-      ip
+
+  command :rdns do
+    help 'Perform a reverse DNS lookup on a host'
+    usage 'ip' => '17.149.160.49'
+
+    call do |m, ip|
+      begin
+        Resolv.new.getname(ip)
+      rescue Resolv::ResolvError
+        ip
+      end
     end
   end
-  
-  def whois(e, domain)
-    begin
-      require 'whois'
-    rescue Exception
-      'command depends on whois gem: http://www.ruby-whois.org/'
-    end
-    
-    a = Whois.query(domain)
-    
-    if a.available? then
-      "#{domain} is availible"
-    else
-      t = a.technical
-      c = "Created on #{a.created_on}"
-      c += " by #{t.name}" if t
-      c
+
+  command :whois do
+    help 'Perform a whois on a domain'
+    usage 'domain' => 'apple.com'
+
+    call do |m, domain|
+      begin
+        require 'whois'
+
+        a = Whois.query(domain)
+
+        if a.available? then
+          "#{domain} is availible"
+        else
+          t = a.technical
+          c = "Created on #{a.created_on}"
+          c += " by #{t.name}" if t
+          c
+        end
+      rescue Exception
+        'command depends on whois gem: http://www.ruby-whois.org/'
+      end
     end
   end
 end
