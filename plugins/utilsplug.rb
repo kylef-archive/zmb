@@ -1,53 +1,56 @@
+require 'commands'
+
 class UtilsPlugin <Plugin
+  extend Commands
+
   name :utils
 
-  def commands
-    {
-      'count' => [lambda { |e, data| "#{data.split_seperators.size}" }, {
-        :help => 'Count the amount of items in a list' } ],
-      'grep' => [:grep, 2, { :help => 'print lines matching a pattern' } ],
-      'not' => [:not_command, 2, { :help => 'Opposite to grep' } ],
-      'tail' => [:tail, { :help => 'List the last three items in a list' }],
-      'echo' => [:echo, { :example => 'Hello, {username}' }],
-      'reverse' => lambda { |e, data| data.reverse },
-      'first' => lambda { |e, data| data.split_seperators.first },
-      'last' => lambda { |e, data| data.split_seperators.last },
-      'sub' => [:sub, {
-        :help => 'Replace all occurances of a pattern',
-        :usage => 'pattern replacement data',
-        :example => 'l * Hello World!' }],
-      'tr' => [:tr, {
-        :help => 'Returns a copy of str with the characters in from_str replaced by the corresponding characters in to_str',
-        :usage => 'from_str to_str data',
-        :example => 'aeiou * hello' }],
-      'downcase' => lambda { |e, data| data.downcase },
-      'upcase' => lambda { |e, data| data.upcase },
-      'swapcase' => lambda { |e, data| data.swapcase },
-      'capitalize' => lambda { |e, data| data.capitalize },
-    }
+  command :count do
+    help 'Count the amount of items in a list'
+    call { |m, list| "#{list.split_seperators.size}" }
   end
 
-  def grep(e, search, data)
-    data.split_seperators.reject{ |d| not d.include?(search) }.join(', ')
+  command :grep do
+    help 'Print lines matchig a pattern'
+    regex /^(\S+) (.+)$/
+
+    call do |m, search, data|
+      data.split_seperators.reject{ |d| not d.include?(search) }.join(', ')
+    end
   end
-  
-  def not_command(e, search, data)
-    data.split_seperators.reject{ |d| d.include?(search) }.join(', ')
+
+  command :not do
+    help 'The opposite to grep'
+    regex /^(\S+) (.+)$/
+
+    call do |m, search, data|
+      data.split_seperators.reject{ |d| d.include?(search) }.join(', ')
+    end
   end
-  
-  def tail(e, data)
-    data.split_seperators.reverse[0..2].join(', ')
+
+  command :tail do
+    help 'List the last three items in a list'
+    call do |m, data|
+      data.split_seperators.reverse[0..2].join(', ')
+    end
   end
-  
-  def echo(e, data)
-    "#{data}"
-  end
-  
-  def sub(e, pattern, replacement, data)
-    data.gsub(pattern, replacement)
-  end
-  
-  def tr(e, from_str, to_str, data)
-    data.tr(from_str, to_str)
+
+  command!(:echo) { |m, data| "#{data}" }
+  command!(:reverse) { |m, data| data.reverse }
+  command!(:first) { |m, data| data.split_seperators.first }
+  command!(:last) { |m, data| data.split_seperators.last }
+  command!(:downcase) { |m, data| data.downcase }
+  command!(:upcase) { |m, data| data.upcase }
+  command!(:swapcase) { |m, data| data.swapcase }
+  command!(:capitalize) { |m, data| data.capitalize }
+
+  command :sub do
+    help 'Replace all occurances of a pattern'
+    usage 'pattern replacement data' => 'l * Hello World!'
+    regex /^(\S+) (\S+) (.+)$/
+
+    call do |m, pattern, replacement, data|
+      data.gsub(pattern, replacement)
+    end
   end
 end
