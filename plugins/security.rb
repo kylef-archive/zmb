@@ -86,6 +86,6 @@ class Security <Plugin
   command!(:sha1) { |m, data| Digest::SHA1.hexdigest(data) }
   command!(:sha256) { |m, data| Digest::SHA256.hexdigest(data) }
   command!(:md5) { |m, data| Digest::MD5.hexdigest(data) }
-  command!(:base64) { |m, data| Base64.b64encode(data) }
+  command!(:base64) { |m, data| Base64.encode64(data) }
   command!(:decode64) { |m, data| Base64.decode64(data) }
 end

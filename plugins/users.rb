@@ -528,7 +528,7 @@ class Users <Plugin
     help 'Execute a command as another user.'
     usage 'user [command]' => 'kylef whoami'
     permission :admin
-    regex /^(\S+)(\s+(\S+)?)$/
+    regex /^(\S+)(\s+(.+)?)$/
 
     call do |m, username, whitespace, command|
       user = user!(username)
