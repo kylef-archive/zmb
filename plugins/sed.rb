@@ -1,17 +1,24 @@
+require 'commands'
+
 class Sed <Plugin
+  extend Commands
+
   name :sed
 
   def initialize(sender, settings)
+    super
     @messages = Hash.new
   end
-  
-  def pre_event(sender, e)
-    if e.message =~ /^s\/(\S+)\/(\S+)\/$/ then
-      e.reply("#{e.name} meant " + @messages[e.userhost].sub($1, $2))
-    elsif e.message =~ /^!!(.+)/ then
-      e.message = @messages[e.userhost] + $1
-    else
-      @messages[e.userhost] = e.message if e.message?
+
+  def irc_message(connection, message)
+    if @messages.has_key?(message.user)
+      if message =~ /^s\/(\S+)\/(\S+)?$/ then
+        message.reply("#{message.user.nick} meant #{@messages[message.user].sub($1, $2)}")
+      elsif message =~ /^!!(.+)$/ then
+        message.replace(@messages[message.user] + $1)
+      end
     end
+
+    @messages[message.user] = message
   end
 end
