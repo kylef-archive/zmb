@@ -106,8 +106,10 @@ class Zmb
       p.definition_file(File.expand_path(source_file))
       @plugin_classes << p
       debug(self, "Loaded source `#{source_file}` (#{p.name})")
+      true
     rescue Exception
       debug(self, "Cannot load source `#{source_file}`", $!)
+      false
     end
   end
 
@@ -130,7 +132,7 @@ class Zmb
     sources = @loaded_plugin_directories
     @plugin_classes = Array.new
     @loaded_plugin_directories = Array.new
-    sources.each{ |directory| add_plugin_source(directory) }
+    sources.each{ |directory| load_plugin_directory(directory) }
   end
 
   def plugin(plugin_name) # Find a loaded plugin
@@ -171,7 +173,7 @@ class Zmb
   end
 
   def reload_plugin!(plugin_name)
-    p = plugins!(plugin_name)
+    p = plugin!(plugin_name)
 
     if p
       @plugin_classes.delete(p)
@@ -182,7 +184,7 @@ class Zmb
         false
       end
     else
-      false
+      nil
     end
   end
 
@@ -190,15 +192,15 @@ class Zmb
     if p = plugin(plugin_name)
       sockets = Array.new
       @sockets.each{ |sock,delegate| sockets << sock if delegate == p }
-      unload(plugin_name, false)
+      unload_plugin(plugin_name, false)
       reloaded = reload_plugin!(plugin_name)
-      load(plugin_name)
+      load_plugin(plugin_name)
       p = plugin(plugin_name)
       sockets.each{ |socket| @sockets[socket] = p }
       p.socket = sockets[0] if sockets.size == 1 and p.respond_to?('socket=')
-      reloaded ? true : false
+      reloaded
     else
-      false
+      nil
     end
   end
 
@@ -339,138 +341,5 @@ class Zmb
     @settings_manager.save(plugin_name, s)
     
     true
-  end
-  
-  def event(sender, e)
-    Thread.new do
-      post! :pre_event, sender, e
-      post! :event, sender, e
-    end
-  end
-  
-  def commands
-    {
-      'reload' => [:reload_command, 1, { :permission => 'admin' }],
-      'unload' => [:unload_command, 1, { :permission => 'admin' }],
-      'load' => [:load_command, 1, { :permission => 'admin' }],
-      'save' => [:save_command, 0, { :permission => 'admin' }],
-      'loaded' => [:loaded_command, 0, { :permission => 'admin' }],
-      'setup' => [:setup_command, 2, { :permission => 'admin' }],
-      'set' => [:set_command, 3, { :permission => 'admin' }],
-      'get' => [:get_command, 2, { :permission => 'admin' }],
-      'reset' => [:reset_command, 1, { :permission => 'admin' }],
-      'addsource' => [:addource_command, 1, { :permission => 'admin' }],
-      'refresh' => [:refresh_command, 1, { :permission => 'admin' }],
-      'quit' => [:quit_command, 0, { :permission => 'admin' }],
-      'debug' => [:debug_command, 0, {
-        :permission => 'admin',
-        :help => 'Toggle debug' }],
-      'stdout' => [:stdout_command, {
-        :permission => 'admin',
-        :usage => '/dev/null' }],
-      'fork' => [:fork_command, 0, {
-        :permission => 'admin' }],
-    }
-  end
-  
-  # Plugin commands
-
-  def reload_command(e, plugin_name)
-    reload_plugin(plugin_name.to_sym) ? "#{plugin_name} reloaded" : "#{plugin_name} refreshed"
-  end
-
-  def unload_command(e, plugin_name)
-    if plugin(plugin_name.to_sym)
-      unload_plugin(plugin_name.to_sym)
-      "#{plugin_name} unloaded"
-    else
-      "No such plugin #{plugin_name}"
-    end
-  end
-
-  def load_command(e, plugin_name)
-    if plugin(plugin_name.to_sym)
-      "Plugin is already loaded #{plugin_name}"
-    else
-      load_plugin(plugin_name.to_sym) ? "#{plugin_name} loaded sucsessfully" : "#{plugin_name} failed to load"
-    end
-  end
-
-   def addsource_command(e, source)
-    @plugin_sources << source
-    add_plugin_source source
-    "#{source} added to plugin manager"
-  end
-
-  def refresh_command(e)
-    refresh_plugin_directories
-    "Refreshed plugin directories"
-  end
-
-  def save_command(e)
-    save
-    'settings saved'
-  end
-  
-  def loaded_command(e)
-    @plugins.collect{ |p| p.class.name }.join(', ')
-  end
-  
-  def setup_command(e, plugin_name)
-    if setup(plugin_name) then
-      object = plugin!(plugin_name).object
-      result = ["Plugin saved, please use the set command to override the default configuration for this plugin."]
-      result += object.wizard.map{ |k,v| "#{k} - #{v['help']} (default=#{v['default']})" } if object.respond_to? 'wizard'
-      result.join("\n")
-    else
-      "plugin not found"
-    end
-  end
-  
-  def set_command(e, plugin_name, key, value)
-    settings = @settings_manager.setting(plugin_name)
-    settings[key] = value
-    @settings_manager.save(plugin_name, settings)
-    
-    if p = plugin(plugin_name)
-      p.update(key, value) if p.respond_to?('update')
-    end
-
-    "#{key} set to #{value} for #{plugin_name}"
-  end
-  
-  def get_command(e, plugin_name, key)
-    if value = @settings_manager.get(plugin_name, key) then
-      "#{key} is #{value} for #{plugin_name}"
-    else
-      "#{plugin_name} or #{plugin_name}/#{key} not found."
-    end
-  end
-
-  def reset_command(e, plugin_name)
-    @settings_manager.save(plugin_name, {})
-    "Settings for #{plugin_name} have been deleted."
-  end
-  
-  def quit_command(e)
-    e.reply "Quitting"
-    save
-    @running = false
-    @plugins.each{ |p| unload_plugin(p.class.name) }
-  end
-  
-  def debug_command(e)
-    @debug = (not @debug)
-    
-    if @debug then
-      "Debugging enabled"
-    else
-      "Debugging disabled"
-    end
-  end
-  
-  def stdout_command(e, out)
-    STDOUT.reopen(File.open(out,'w'))
-    "STDOUT set to #{out}"
   end
 end
