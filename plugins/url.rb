@@ -3,6 +3,8 @@ require 'net/http'
 require 'commands'
 
 class URL <Plugin
+  extend Commands
+
   name :url
   description 'URL shortening and paste websites'
 
