@@ -1,59 +1,69 @@
 require 'uri'
 require 'net/http'
+require 'commands'
 
 class URL <Plugin
   name :url
   description 'URL shortening and paste websites'
 
-  def initialize(sender, s) ;end
-  
-  def commands
-    {
-      'head' => :head,
-      'url' => [:get, { :permission => 'admin' }],
-      'bitly' => [:bitly, { :help => 'Shorten a URL' }],
-      'isgd' => [:isgd, { :help => 'Shorten a URL' }],
-      'tinyurl' => [:tinyurl, { :help => 'Shorten a URL' }],
-      'dpaste' => :dpaste,
-      'pastie' => :pastie_command,
-      'ppastie' => [:private_pastie_command, { :help => 'Create a private pastie' }],
-    }
-  end
-  
-  def head(e, url)
-    resp = url.http('head')
+  command :head do
+    regex /^(\S+)$/
+
+    call do |m, url|
+      resp = url.http('head')
     
-    if resp.code == "301" or resp.code == "302" then
-      "#{resp.code} - #{resp['location']}"
-    elsif resp.code == "404" then
-      "404 - Page not found"
-    else
-      "#{resp.code}"
+      if resp.code == "301" or resp.code == "302" then
+        "#{resp.code} - #{resp['location']}"
+      elsif resp.code == "404" then
+        "404 - Page not found"
+      else
+        "#{resp.code}"
+      end
+    end
+  end
+
+  command :get do
+    permission :admin
+    regex /^(\S+)$/
+
+    call do |m, url|
+      url.get.body
     end
   end
   
-  def get(e, url)
-    url.get.body
+  command :bitly do
+    help 'Shorten a URL'
+    regex /^(\S+)$/
+
+    call do |m, url|
+      'http://bit.ly/api'.get({ :url => url }).body
+    end
   end
-  
-  def bitly(e, link)
-    'http://bit.ly/api'.get({ :url => link }).body
+
+  command :isgd do
+    help 'Shorten a URL'
+    regex /^(\S+)$/
+
+    call do |m, url|
+      'http://is.gd/api.php'.get({ :longurl => url }).body
+    end
   end
-  
-  def isgd(e, link)
-    'http://is.gd/api.php'.get({ :longurl => link }).body
+
+  command :tinyurl do
+    help 'Shorten a URL'
+    regex /^(\S+)$/
+
+    call do |m, url|
+      'http://tinyurl.com/api-create.php'.get({ :url => url }).body
+    end
   end
-  
-  def tinyurl(e, link)
-    'http://tinyurl.com/api-create.php'.get({ :url => link }).body
-  end
-  
-  def dpaste(e, data)
+
+  command!(:dpaste) do |m, data|
     resp, body = 'http://dpaste.de/api/'.post({ :content => data })
     body = body[1..-2] if body =~ /^".+"$/ # Remove any quotation marks if there are any
     body
   end
-  
+
   def pastie(data, is_private=false, format='plaintext')
     resp, body = 'http://pastie.org/pastes'.post({ :paste => {
       :body => data,
@@ -68,12 +78,16 @@ class URL <Plugin
       body
     end
   end
-  
-  def pastie_command(e, data)
+
+  command!(:pastie) do |m, data|
     pastie(data)
   end
-  
-  def private_pastie_command(e, data)
-    pastie(data, true)
+
+  command :ppastie do
+    help 'Upload a private pastie'
+
+    call do |m, data|
+      pastie(data, true)
+    end
   end
 end
