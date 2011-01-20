@@ -22,7 +22,7 @@ class IrcPlugin <Plugin
       ident = config.has_key?('ident') ? config['ident'] : s['ident']
       realname = config.has_key?('realname') ? config['realname'] : s['realname']
       channels = config.has_key?('channels') ? config['channels'] : []
-      @connections << IRC::Connection.new(self, network, server['host'], server['port'], nick, ident, realname, channels)
+      @connections << IRC::Connection.new(self, network, server['host'], server['port'], nick, ident, realname, server['password'], channels)
     end
 
     @settings = s

@@ -160,7 +160,7 @@ module IRC
     attr_reader :nick
     attr_accessor :isupport
 
-    def initialize(plugin, network, host, port=6667, nick='zmb', ident='zmb', realname='zmb', channels=[])
+    def initialize(plugin, network, host, port=6667, nick='zmb', ident='zmb', realname='zmb', password=nil, channels=[])
       super(plugin)
 
       @isupport = ISupport.new
@@ -174,6 +174,7 @@ module IRC
       @port = port
       @ident = ident
       @realname = realname
+      @password = password
       @auto_join = channels
 
       @nick = nick # Current nick
