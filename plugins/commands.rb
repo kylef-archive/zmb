@@ -155,21 +155,21 @@ class CommandsPlugin <Plugin
       return
     end
 
-    line.sub!('{time}', Time.now.strftime('%H:%M:%S'))
-    line.sub!('{day}', Time.now.strftime('%d'))
-    line.sub!('{weekday}', Time.now.strftime('%A'))
-    line.sub!('{timezone}', Time.now.strftime('%Z'))
-    line.sub!('{month}', Time.now.strftime('%B'))
-    line.sub!('{year}', Time.now.strftime('%Y'))
-    line.sub!('{username}', message.opts[:user].username) if message.opts.has_key?(:user)
-    line.sub!('{points}', "#{message.opts[:bank].balance}") if message.opts.has_key?(:bank)
-    line.sub!('{channel}', message.channel.to_s) unless message.channel.nil?
-    line.sub!('{nick}', message.user.nick)
-    line.sub!('{userhost}', message.user.userhost)
-    line.sub!('{rand}', String.random)
+    line.gsub!('{time}', Time.now.strftime('%H:%M:%S'))
+    line.gsub!('{day}', Time.now.strftime('%d'))
+    line.gsub!('{weekday}', Time.now.strftime('%A'))
+    line.gsub!('{timezone}', Time.now.strftime('%Z'))
+    line.gsub!('{month}', Time.now.strftime('%B'))
+    line.gsub!('{year}', Time.now.strftime('%Y'))
+    line.gsub!('{username}', message.opts[:user].username) if message.opts.has_key?(:user)
+    line.gsub!('{points}', "#{message.opts[:bank].balance}") if message.opts.has_key?(:bank)
+    line.gsub!('{channel}', message.channel.to_s) unless message.channel.nil?
+    line.gsub!('{nick}', message.user.nick)
+    line.gsub!('{userhost}', message.user.userhost)
+    line.gsub!('{rand}', String.random)
  
     input = nil
-    line.sub!('\|', "\000p\000")
+    line.gsub!('\|', "\000p\000")
 
     line.split('|').each do |l|
       if l.strip =~ /^(\S+)(\s+(.+))?$/
@@ -180,7 +180,7 @@ class CommandsPlugin <Plugin
 
         if args.count > 0
           args = args.join(' ')
-          args.sub!("\000p\000", '|')
+          args.gsub!("\000p\000", '|')
           input = execute!(c, message, args)
         else
           input = execute!(c, message)
