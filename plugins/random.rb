@@ -1,32 +1,54 @@
+require 'commands'
+
 class Random <Plugin
+  extend Commands
+
   name :random
   description 'Commands for coinflips, dice, yesno, random'
 
-  def initialize(sender, settings); end
-  
-  def commands
-    {
-      'random' => [:random, {
-        :help => 'Select a item randomly from a list',
-        :usage => 'item 1, item 2, item 3',
-        :example => 'egg, tomatoe, sausage' }],
-      'yesno' => [:yesno, 0, { :help => 'yes or no?' }],
-      'headstails' => [:coinflip, 0, { :help => 'Flip a coin' }],
-      'coinflip' => [:coinflip, 0, { :help => 'Flip a coin' }],
-      'dice' => [lambda { |e| "#{rand(6) + 1}" }, 0, { :help => 'Roll a dice' }],
-    }
+  def random(*args)
+    args[rand(args.size)]
   end
-  
-  def random(e, args)
-    items = args.split_seperators
-    "#{items[rand(items.size)]}"
+
+  command :random do
+    help 'Select a item randomly from a list'
+    usage 'item 1, item 2, item 3'
+    example 'waffles, pancakes, ice creme'
+
+    call do |m, args|
+      random(*args.split_seperators)
+    end
   end
-  
-  def yesno(e)
-    random(e, ['yes', 'no'])
+
+  command :yesno do
+    help 'Yes, or no?'
+    
+    call do |m|
+      random('yes', 'no')
+    end
   end
-  
-  def coinflip(e)
-    random(e, ['heads', 'tails'])
+
+  command :coinflip do
+    help 'Flip a coin'
+
+    call do |m|
+      random('Heads', 'Tails')
+    end
+  end
+
+  command :headstails do
+    help 'Flip a coin'
+
+    call do |m|
+      random('Heads', 'Tails')
+    end
+  end
+
+  command :dice do
+    help 'Roll a dice'
+
+    call do |m|
+      "#{rand(6) + 1}"
+    end
   end
 end
