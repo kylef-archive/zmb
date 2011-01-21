@@ -5,11 +5,6 @@ class Wiki <Plugin
 
   name :wiki
 
-  def initialize(sender, settings)
-    super(sender, settings)
-    @namespaces = Hash.new
-  end
-
   def irc_message(connection, message)
     message.scan(/\[\[(.+)\]\]/).each do |match|
       match = match.first
@@ -20,8 +15,10 @@ class Wiki <Plugin
         path = match
       end
 
-      if @namespaces.has_key?(ns)
-        message.reply("#{@namespaces[ns]}#{path.sub(' ', '_')}")
+      if nv?(ns)
+        message.reply("#{nv(ns)}#{path.sub(' ', '_')}")
+      else
+        message.reply("Wiki namespace (#{ns}) does not exist.")
       end
     end
   end
@@ -29,10 +26,11 @@ class Wiki <Plugin
   command :add_namespace do
     help 'Add a wiki namespace'
     permission :admin
+    usage 'namespace uri' => 'Self http://en.wikipedia.org/wiki/'
     regex /^(\S+)\s+(\S+)$/
 
     call do |m, ns, uri|
-      @namespaces[ns] = uri
+      nv(ns, uri)
       "#{ns} has been set to #{uri}"
     end
   end
@@ -43,7 +41,7 @@ class Wiki <Plugin
     regex /^(\S+)$/
 
     call do |m, ns|
-      @namespaces.delete(ns)
+      nv!(ns)
       "#{ns} has been removed"
     end
   end
@@ -53,8 +51,10 @@ class Wiki <Plugin
     permission :admin
 
     call do |m|
-      if @namespaces.count > 0
-        @namespaces.keys.join(', ')
+      load_nv if @nv.nil?
+
+      if @nv.count > 0
+        @nv.keys.join(', ')
       else
         'There are no namespaces.'
       end
