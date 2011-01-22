@@ -16,7 +16,7 @@ class Wiki <Plugin
       end
 
       if nv?(ns)
-        message.reply("#{nv(ns)}#{path.sub(' ', '_')}")
+        message.reply("#{nv(ns)}#{path.gsub(' ', '_')}")
       else
         message.reply("Wiki namespace (#{ns}) does not exist.")
       end
