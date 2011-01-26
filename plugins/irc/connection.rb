@@ -157,10 +157,9 @@ module IRC
 
   class Connection <PluginForwarder
     attr_accessor :users, :channels
-    attr_reader :nick
     attr_accessor :isupport
 
-    def initialize(plugin, network, host, port=6667, nick='zmb', ident='zmb', realname='zmb', password=nil, channels=[])
+    def initialize(plugin, network, host, port=6667, password=nil, channels=[])
       super(plugin)
 
       @isupport = ISupport.new
@@ -172,13 +171,8 @@ module IRC
       @network = network
       @host = host
       @port = port
-      @ident = ident
-      @realname = realname
       @password = password
       @auto_join = channels
-
-      @nick = nick # Current nick
-      @prefered_nick = nick
     end
 
     def to_s
@@ -190,6 +184,10 @@ module IRC
     def nick=(value)
       @nick = value
       write "NICK #{@nick}"
+    end
+
+    def nick
+      @nick.nil? ? plugin.nick : @nick
     end
 
     # Network
@@ -208,8 +206,8 @@ module IRC
         post(:irc_registration, self) { return }
 
         write "PASS #{@password}" if @password
-        write "NICK #{@prefered_nick}" if @prefered_nick
-        write "USER #{@ident} 0 * :#{@realname}" if @ident and @realname
+        write "NICK #{plugin.nick}"
+        write "USER #{plugin.ident} 0 * :#{plugin.realname}"
       end
     end
 
@@ -554,12 +552,6 @@ module IRC
         @nick = "#{$1}_"
         write "NICK #{$1}_"
       end
-    end
-  end
-
-  class Network
-    def initialize(plugin, name, servers=[], channels=[])
-
     end
   end
 end

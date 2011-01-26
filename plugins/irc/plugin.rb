@@ -10,19 +10,13 @@ class IrcPlugin <Plugin
     @default_channel_modes = ['n', 's', 't']
     @connections = []
 
-    s['nick'] = 'zmb' unless s.has_key?('nick')
-    s['ident'] = 'zmb' unless s.has_key?('ident')
-    s['realname'] = 'ZMB Bot' unless s.has_key?('realname')
     s['networks'] = Hash.new unless s.has_key?('networks')
 
     s['networks'].each do |network, config|
       server = config['servers'].first
       server['port'] = 6667 unless server.has_key?('port')
-      nick = config.has_key?('nick') ? config['nick'] : s['nick']
-      ident = config.has_key?('ident') ? config['ident'] : s['ident']
-      realname = config.has_key?('realname') ? config['realname'] : s['realname']
       channels = config.has_key?('channels') ? config['channels'] : []
-      @connections << IRC::Connection.new(self, network, server['host'], server['port'], nick, ident, realname, server['password'], channels)
+      @connections << IRC::Connection.new(self, network, server['host'], server['port'], server['password'], channels)
     end
 
     @settings = s
@@ -30,6 +24,18 @@ class IrcPlugin <Plugin
 
   def settings
     @settings
+  end
+
+  def nick
+    nv?('nick') ? nv('nick') : 'zmb'
+  end
+
+  def ident
+    nv?('ident') ? nv('ident') : 'zmb'
+  end
+
+  def realname
+    nv?('realname') ? nv('realname') : 'ZMB Messenger Bot'
   end
 
   def zmb_run(core)
