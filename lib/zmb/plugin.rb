@@ -30,10 +30,6 @@ class Plugin
     zmb.plugins
   end
 
-  def debug(message, exception=nil)
-    zmb.debug(self, message, exception) if @zmb
-  end
-
   def directory
     d = File.join(zmb.settings_manager.directory, self.class.name.to_s)
     Dir.mkdir(d) unless File.exists?(d)
@@ -72,10 +68,6 @@ class PluginForwarder
 
   def plugins
     @plugin.plugins
-  end
-
-  def debug(message, exception=nil)
-    @plugin.debug(message, exception) if @plugin
   end
 
   # Timers

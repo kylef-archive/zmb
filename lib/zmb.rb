@@ -19,11 +19,11 @@ class Zmb
   attr_accessor :plugin_classes
 
   def initialize(config_dir)
-    @debug = false
+    $debug = false
     @running = false
 
     @settings_manager = Settings.new(config_dir)
-    @debug = @settings_manager.get('zmb', 'debug', false)
+    $debug = @settings_manager.get('zmb', 'debug', false)
 
     @sockets = Hash.new
 
@@ -63,7 +63,7 @@ class Zmb
     {
       'plugin_sources' => @plugin_sources,
       'plugins' => @plugins.collect{ |p| p.class.name },
-      'debug' => @debug,
+      'debug' => $debug,
     }
   end
   
@@ -74,7 +74,7 @@ class Zmb
   end
   
   def debug(sender, message, exception=nil)
-    return unless @debug
+    return unless $debug
     line = Array.new
     
     if sender then

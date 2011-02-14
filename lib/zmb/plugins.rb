@@ -4,6 +4,15 @@ module ZMB
 
   # This module requires `plugins` to return a list of all loaded plugins
   module Plugins
+    def debug!(message)
+      return unless $debug
+      puts message
+    end
+
+    def debug(message, exception=nil)
+      debug!("(#{self.class}) #{message} #{exception}")
+    end
+
     def plugin(symbol)
       plugins.find{ |p| p.class.name == symbol }
     end
@@ -30,7 +39,7 @@ module ZMB
         rescue Halt
           return
         rescue
-          zmb.debug(p, "Sending signal `#{signal}` failed", $!)
+          debug!("(#{p}) Sending signal `#{signal}` failed: #{$!}")
         end
       end
     end
