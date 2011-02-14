@@ -1,9 +1,8 @@
+require 'zmb/plugins'
 require 'zmb/nv'
 
-class Halt <Exception; end
-class HaltCore <Halt; end
-
 class Plugin
+  include ZMB::Plugins
   include ZMB::NV
 
   attr_accessor :zmb, :timers
@@ -22,14 +21,6 @@ class Plugin
     attr_rw :name, :description, :definition_file
   end
 
-  def halt(*args)
-    raise Halt.new(*args)
-  end
-
-  def haltcore(*args)
-    raise HaltCore.new(*args)
-  end
-
   def initialize(core, s)
     @zmb = core
     @timers = Array.new
@@ -39,31 +30,8 @@ class Plugin
     zmb.plugins
   end
 
-  def plugin(symbol)
-    plugins.find{ |p| p.class.name == symbol }
-  end
-
-  def plugin!(name)
-    plugin(name.to_sym)
-  end
-
   def debug(message, exception=nil)
     zmb.debug(self, message, exception) if @zmb
-  end
-
-  def post(signal, *args, &block)
-    plugins.select{ |p| p.respond_to?(signal) }.each do |p|
-      begin
-        p.send(signal, *args)
-      rescue HaltCore
-        block.call if block
-        return
-      rescue Halt
-        return
-      rescue
-        zmb.debug(p, "Sending signal `#{signal}` failed", $!)
-      end
-    end
   end
 
   def directory
@@ -90,26 +58,24 @@ class PluginForwarder
   # It allows you to use post, debug, halt, etc inside other
   # non-plugin classes. It just requires @plugin to be set.
 
+  include ZMB::Plugins
+
   attr_accessor :plugin
 
   def initialize(plug)
     @plugin = plug
   end
 
-  def halt(*args)
-    raise Halt.new(*args)
+  def zmb
+    @plugin.zmb
   end
 
-  def haltcore(*args)
-    raise HaltCore.new(*args)
+  def plugins
+    @plugin.plugins
   end
-  
+
   def debug(message, exception=nil)
     @plugin.debug(message, exception) if @plugin
-  end
-
-  def post(*args)
-    @plugin.post(*args) if @plugin
   end
 
   # Timers
