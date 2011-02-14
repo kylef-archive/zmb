@@ -9,12 +9,15 @@ end
 
 require 'zmb/utils'
 require 'zmb/plugin'
+require 'zmb/plugins'
 require 'zmb/settings'
 require 'zmb/event'
 require 'zmb/timer'
 
 class Zmb
-  attr_accessor :settings_manager, :debug
+  include ZMB::Plugins
+
+  attr_accessor :settings_manager
   attr_accessor :plugin_manager, :plugin_sources, :plugins
   attr_accessor :plugin_classes
 
@@ -68,35 +71,17 @@ class Zmb
   end
   
   def save
-    debug(self, "Saving settings")
+    debug("Saving settings")
     @plugins.each{ |p| @settings_manager.save(p.class.name, p) }
     @settings_manager.save('zmb', self)
   end
   
-  def debug(sender, message, exception=nil)
-    return unless $debug
-    line = Array.new
-    
-    if sender then
-      if sender == self
-        line << "(core)"
-      elsif sender.class.respond_to?('name')
-        line << "(#{sender.class.name})"
-      else
-        line << "(#{sender})"
-      end
-    else
-      line << "(unknown)"
-    end
-    
-    line << message
-    line << exception if exception
-    
-    puts line.join(' ')
-  end
-
   # Plugins
 
+  def plugins!(plugin_name)
+    @plugin_classes.find{ |p| p.name == plugin_name }
+  end
+  
   def load_plugin_source(source_file)
     begin
       source_data = File.read(source_file)
@@ -105,17 +90,17 @@ class Zmb
       p = eval(source_data)
       p.definition_file(File.expand_path(source_file))
       @plugin_classes << p
-      debug(self, "Loaded source `#{source_file}` (#{p.name})")
+      debug("Loaded source `#{source_file}` (#{p.name})")
       true
     rescue Exception
-      debug(self, "Cannot load source `#{source_file}`", $!)
+      debug("Cannot load source `#{source_file}`", $!)
       false
     end
   end
 
   def load_plugin_directory(directory)
     $LOAD_PATH << directory
-    debug(self, "Loading plugin directory `#{directory}`")
+    debug("Loading plugin directory `#{directory}`")
     @loaded_plugin_directories << directory
 
     definition_files = Dir[
@@ -135,26 +120,18 @@ class Zmb
     sources.each{ |directory| load_plugin_directory(directory) }
   end
 
-  def plugin(plugin_name) # Find a loaded plugin
-    @plugins.find{ |p| p.class.name == plugin_name }
-  end
-
-  def plugin!(plugin_name) # Find a loaded plugin
-    @plugin_classes.find{ |p| p.name == plugin_name }
-  end
-
   def load_plugin(plugin_name)
     return true if plugin(plugin_name)
 
-    if definition = plugin!(plugin_name)
+    if definition = plugins!(plugin_name)
       instance = definition.new(self, @settings_manager.setting(plugin_name))
       instance.zmb = self
-      post! :plugin_loaded, plugin_name, instance
+      post(:plugin_loaded, plugin_name, instance)
       @plugins << instance
-      debug(self, "Loaded #{plugin_name}")
+      debug("Loaded #{plugin_name}")
       true
     else
-      debug(self, "No such plugin #{plugin_name}")
+      debug("No such plugin #{plugin_name}")
       false
     end
   end
@@ -165,7 +142,7 @@ class Zmb
       @settings_manager.save plugin_name, p
       socket_delete p
       p.unloaded if p.respond_to?('unloaded') and tell
-      post! :plugin_unloaded, plugin_name, p
+      post(:plugin_unloaded, plugin_name, p)
       true
     else
       false
@@ -173,7 +150,7 @@ class Zmb
   end
 
   def reload_plugin!(plugin_name)
-    p = plugin!(plugin_name)
+    p = plugins!(plugin_name)
 
     if p
       @plugin_classes.delete(p)
@@ -205,22 +182,22 @@ class Zmb
   end
 
   def run
-    debug(self, 'Start runloop')
+    debug('Start runloop')
 
     @running = true
-    post!(:zmb_run, self)
+    post(:zmb_run, self) { return }
     begin
       while @running
         socket_run(timeout)
         timer_run
       end
     rescue Interrupt
-      debug(self, 'Runloop interrupted')
+      debug('Runloop interrupted')
       save
     end
 
-    debug(self, 'End runloop')
-    post!(:zmb_exit, self)
+    debug('End runloop')
+    post(:zmb_exit, self)
   end
   
   def run_fork
@@ -233,7 +210,7 @@ class Zmb
     }
     
     Process.detach(pid)
-    debug(self, 'zmb Forked')
+    debug('zmb Forked')
     pid
   end
   
@@ -258,7 +235,7 @@ class Zmb
   end
   
   def socket_add(delegate, socket)
-    debug(delegate, "Socked added")
+    debug!("(#{delegate}) Socked added")
     @sockets[socket] = delegate
   end
   
@@ -281,7 +258,7 @@ class Zmb
           @sockets[sock].disconnected(self, sock) if @sockets[sock].respond_to?('disconnected')
           sock.close
           socket_delete sock
-          debug(@sockets[sock], "Socket EOF")
+          debug!("(#{@sockets[sock]}) Socket EOF")
         else
           @sockets[sock].received(self, sock, sock.gets()) if @sockets[sock].respond_to?('received')
         end
@@ -299,35 +276,9 @@ class Zmb
       t.fire
     end
   end
-  
-  def post(signal, *args)
-    results = Array.new
-    
-    @plugins.select{ |p| p.respond_to?(signal) }.each do |p|
-      begin
-        result = p.send(signal, *args)
-        break if result == :halt
-        results << result
-      rescue Exception
-        debug(p, "Sending signal `#{signal}` failed", $!)
-      end
-    end
-    
-    results
-  end
-  
-  def post!(signal, *args) # This will exclude the plugin manager
-    @plugins.select{ |p| p.respond_to?(signal) and p != self }.each do |p|
-      begin
-        break if p.send(signal, *args) == :halt
-      rescue Exception
-        debug(p, "Sending signal `#{signal}` failed", $!)
-      end
-    end
-  end
-  
+
   def setup(plugin_name)
-    definition = plugin!(plugin_name)
+    definition = plugins!(plugin_name)
     return false if not definition
     object = definition.object
 

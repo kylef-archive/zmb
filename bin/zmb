@@ -207,7 +207,7 @@ if options[:shell] then
   end
 end
 
-zmb.debug = options[:debug]
+$debug = options[:debug]
 
 if options[:daemon] then
   if options[:foreground] then
