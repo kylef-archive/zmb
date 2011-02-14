@@ -1,59 +1,55 @@
+require 'json'
+
 module ZMB
-  module NV # (Non-volatile memory)
-    def nv(key, value=nil, write=true)
-      load_nv if @nv.nil?
+  class NVHash <Hash
+    def self.from_file(nv_file)
+      nv = NVHash.new(nv_file)
 
-      if value.nil?
-        @nv[key]
-      else
-        @nv[key] = value
-        save_nv if write
-      end
-    end
-
-    # Gets a Boolean determining if the key is stored in NV
-    #
-    # key - String
-    #
-    # Returns a Boolean.
-    def nv?(key)
-      load_nv if @nv.nil?
-      @nv.has_key?(key)
-    end
-
-    # Remove a value from the non-volatile memory
-    #
-    # key - String
-    #
-    # Returns the deleted value or nil if it didn't exist. 
-    def nv!(key, write=true)
-      load_nv if @nv.nil?
-      ret = @nv.delete(key)
-      save_nv if write
-      ret
-    end
-
-    # Returns the location of the NV file
-    def nv_file
-      File.join(directory, 'nv.json')
-    end
-
-    # Load the NV from the nv file
-    def load_nv
       if File.exists?(nv_file)
-        @nv = JSON.parse(File.read(nv_file))
-      else
-        @nv = Hash.new
+        nv.update(JSON.parse(File.read(nv_file)))
+      end
+
+      nv
+    end
+
+    def initialize(nv_file)
+      @nv_file = nv_file
+    end
+
+    def save
+      File.open(@nv_file, 'w') do |f|
+        f.write(to_json)
       end
     end
 
-    # Save the current NV to the NV file
-    def save_nv
-      @nv = Hash.new unless @nv
-
-      File.open(nv_file, 'w') do |f|
-        f.write(@nv.to_json)
+    def key(key, default=nil)
+      if key?(key)
+        self[key]
+      else
+        default
       end
+    end
+
+    def []=(key, value)
+      super
+      save
+    end
+
+    def delete(key)
+      super
+      save
+    end
+  end
+
+  module NV # (Non-volatile memory)
+    # Returns a NVHash for self
+    def nv
+      @nv || nv!
+    end
+
+    # Returns a new NVHash
+    def nv!
+      @nv = NVHash.from_file(File.join(directory, 'nv.json'))
     end
   end
 end

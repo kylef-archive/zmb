@@ -15,8 +15,8 @@ class Wiki <Plugin
         path = match
       end
 
-      if nv?(ns)
-        message.reply("#{nv(ns)}#{path.gsub(' ', '_')}")
+      if nv.key?(ns)
+        message.reply("#{nv[ns]}#{path.gsub(' ', '_')}")
       else
         message.reply("Wiki namespace (#{ns}) does not exist.")
       end
@@ -30,7 +30,7 @@ class Wiki <Plugin
     regex /^(\S+)\s+(\S+)$/
 
     call do |m, ns, uri|
-      nv(ns, uri)
+      nv[ns] = uri
       "#{ns} has been set to #{uri}"
     end
   end
@@ -41,7 +41,7 @@ class Wiki <Plugin
     regex /^(\S+)$/
 
     call do |m, ns|
-      nv!(ns)
+      nv.delete(ns)
       "#{ns} has been removed"
     end
   end
@@ -51,10 +51,8 @@ class Wiki <Plugin
     permission :admin
 
     call do |m|
-      load_nv if @nv.nil?
-
-      if @nv.count > 0
-        @nv.keys.join(', ')
+      if nv.count > 0
+        nv.keys.join(', ')
       else
         'There are no namespaces.'
       end

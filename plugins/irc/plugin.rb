@@ -27,15 +27,15 @@ class IrcPlugin <Plugin
   end
 
   def nick
-    nv?('nick') ? nv('nick') : 'zmb'
+    nv.key('nick', 'zmb')
   end
 
   def ident
-    nv?('ident') ? nv('ident') : 'zmb'
+    nv.key('ident', 'zmb')
   end
 
   def realname
-    nv?('realname') ? nv('realname') : 'ZMB Messenger Bot'
+    nv.key('realname', 'ZMB Messenger Bot')
   end
 
   def zmb_run(core)
