@@ -10,32 +10,35 @@ end
 require 'zmb/utils'
 require 'zmb/plugin'
 require 'zmb/plugins'
+require 'zmb/nv'
 require 'zmb/settings'
 require 'zmb/event'
 require 'zmb/timer'
 
 class Zmb
   include ZMB::Plugins
+  include ZMB::NV
 
-  attr_accessor :settings_manager
+  attr_accessor :config_dir, :settings_manager
   attr_accessor :plugin_manager, :plugin_sources, :plugins
   attr_accessor :plugin_classes
 
-  def initialize(config_dir)
-    $debug = false
+  def initialize(dir)
+    @config_dir = dir
     @running = false
 
-    @settings_manager = Settings.new(config_dir)
-    $debug = @settings_manager.get('zmb', 'debug', false)
+    plugin_dir = File.join(config_dir, 'plugins')
+    if not File.exist?(plugin_dir) then
+      FileUtils.makedirs(plugin_dir)
+    end
 
     @sockets = Hash.new
 
     @minimum_timeout = 0.5 # Half a second
     @maximum_timeout = 60.0 # Sixty seconds
     @timers = Array.new
-    #timer_add(Timer.new(self, :save, 120.0, true)) # Save every 2 minutes
 
-    plugin_dir = File.join(@settings_manager.directory, 'plugins')
+    plugin_dir = File.join(config_dir, 'plugins')
     if not File.exist?(plugin_dir) then
       FileUtils.makedirs(plugin_dir)
     end
@@ -44,12 +47,15 @@ class Zmb
     @plugin_classes = Array.new
     @plugins = Array.new
 
-    @plugin_sources = @settings_manager.get('zmb', 'plugin_sources', [])
+    # Create the DEPRICATED settings_manager
+    @settings_manager = Settings.new(config_dir)
+
+    @plugin_sources = nv.key('plugin_sources', [])
     @plugin_sources.each{ |directory| load_plugin_directory(directory) }
     load_plugin_directory(File.join(File.expand_path(File.dirname(File.dirname(__FILE__))), 'plugins'))
     load_plugin_directory(plugin_dir)
 
-    @settings_manager.get('zmb', 'plugins', []).each do |plugin_name|
+    nv.key('plugins', []).each do |plugin_name|
       load_plugin(plugin_name.to_sym)
     end
 
@@ -61,15 +67,8 @@ class Zmb
   def running?
     @running
   end
-  
-  def settings
-    {
-      'plugin_sources' => @plugin_sources,
-      'plugins' => @plugins.collect{ |p| p.class.name },
-      'debug' => $debug,
-    }
-  end
-  
+
+  # DEPRICATED (See NV)
   def save
     debug("Saving settings")
     @plugins.each{ |p| @settings_manager.save(p.class.name, p) }
@@ -275,22 +274,5 @@ class Zmb
     timers.flatten.each do |t|
       t.fire
     end
-  end
-
-  def setup(plugin_name)
-    definition = plugins!(plugin_name)
-    return false if not definition
-    object = definition.object
-
-    s = Hash.new
-
-    if object.respond_to? 'wizard' then
-      d = object.wizard
-      d.each{ |k,v| s[k] = v['default'] if v.has_key?('default') and v['default'] }
-    end
-    
-    @settings_manager.save(plugin_name, s)
-    
-    true
   end
 end

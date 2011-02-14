@@ -30,8 +30,8 @@ class Plugin
     zmb.plugins
   end
 
-  def directory
-    d = File.join(zmb.settings_manager.directory, self.class.name.to_s)
+  def config_dir
+    d = File.join(zmb.config_dir, self.class.name.to_s)
     Dir.mkdir(d) unless File.exists?(d)
     d
   end

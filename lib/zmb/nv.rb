@@ -49,7 +49,7 @@ module ZMB
 
     # Returns a new NVHash
     def nv!
-      @nv = NVHash.from_file(File.join(directory, 'nv.json'))
+      @nv = NVHash.from_file(File.join(config_dir, 'nv.json'))
     end
   end
 end
