@@ -147,7 +147,7 @@ class CommandsPlugin <Plugin
     end
 
     # Commands will not start with a .
-    return if line =~ /^./
+    return if line =~ /^\./
 
     line.gsub!('{time}', Time.now.strftime('%H:%M:%S'))
     line.gsub!('{day}', Time.now.strftime('%d'))
