@@ -3,7 +3,7 @@ require 'json'
 module ZMB
   class NVHash <Hash
     def self.from_file(nv_file)
-      nv = NVHash.new(nv_file)
+      nv = new(nv_file)
 
       if File.exists?(nv_file)
         nv.update(JSON.parse(File.read(nv_file)))
