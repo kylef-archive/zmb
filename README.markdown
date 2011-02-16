@@ -51,4 +51,4 @@ You can run zmb in a shell mode to test plugins without even connecting to any i
 
 ### Support
 
-You can find support at #zmb @ efnet.
+You can find support at #zmb @ irc.sector5d.org
