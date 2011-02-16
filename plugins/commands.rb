@@ -119,17 +119,8 @@ class CommandsPlugin <Plugin
   name :commands
   description 'This plugin is needed for other plugins to function properly.'
 
-  attr_accessor :cc
-  
-  def initialize(sender, s={})
-    super
-
-    @cc = '.'
-    @cc = s['cc'] if s.has_key?('cc')
-  end
-
-  def settings
-    { 'cc' => @cc }
+  def cc
+    nv.key('cc', '.')
   end
 
   def command(symbol) # Find a command via symbol
@@ -145,8 +136,8 @@ class CommandsPlugin <Plugin
   end
 
   def irc_message(connection, message)
-    if message[0, @cc.length] == @cc then
-      line = message[@cc.length..-1].clone
+    if message[0, cc.length] == cc then
+      line = message[cc.length..-1].clone
     elsif message =~ /^#{connection.nick}(:|,) (.+)/
       line = $2
     elsif message.private? then
@@ -229,10 +220,10 @@ class CommandsPlugin <Plugin
 
     call do |m, var|
       if var.nil?
-        "Control command is set to '#{@cc}'"
+        "Control command is set to '#{cc}'"
       else
-        @cc = var
-        "Control command has been changed to '#{@cc}'"
+        nv['cc'] = var
+        "Control command has been changed to '#{cc}'"
       end
     end
   end
