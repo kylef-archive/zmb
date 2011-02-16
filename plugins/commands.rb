@@ -146,6 +146,9 @@ class CommandsPlugin <Plugin
       return
     end
 
+    # Commands will not start with a .
+    return if line =~ /^./
+
     line.gsub!('{time}', Time.now.strftime('%H:%M:%S'))
     line.gsub!('{day}', Time.now.strftime('%d'))
     line.gsub!('{weekday}', Time.now.strftime('%A'))
@@ -200,7 +203,7 @@ class CommandsPlugin <Plugin
       rescue ArgumentError
         "#{symbol}: Incorrect arguments"
       rescue Exception
-        zmb.debug(c.instance.nil? ? self : c.instance, "#{symbol}: Command failed to execute", $!)
+        debug!("(#{c.instance.nil? ? self : c.instance}) #{symbol}: Command failed to execute - #{$!}")
         "#{symbol}: Failed to execute"
       end
     else
