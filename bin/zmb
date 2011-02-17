@@ -13,20 +13,6 @@ class AdminUser
   def authenticated?; true; end
 end
 
-class Event
-  attr_accessor :message, :user, :delegate
-  
-  def initialize(message)
-    @message = message
-  end
-  
-  def message?; true; end
-  def private?; true; end
-  def name; "admin"; end
-  def user; AdminUser.new; end
-  def reply(msg); notice "#{msg}"; end
-end
-
 class Tty
   class <<self
     def blue; color 34; end
@@ -189,8 +175,8 @@ if options[:wizard] then
 end
 
 if options[:command] then
-  zmb.event(nil, Event.new(options[:command]))
-  zmb.save
+  command, args = options[:command].split(' ', 2)
+  notice zmb.plugin(:commands).execute!(command, args)
 end
 
 if options[:shell] then
@@ -198,10 +184,10 @@ if options[:shell] then
   
   begin
     while 1
-      zmb.event(nil, Event.new(question_string))
+      command, args = question_string.split(' ', 2)
+      notice zmb.plugin(:commands).execute!(command, args)
     end
   rescue Interrupt
-    zmb.save
     puts
     warning "Exiting"
   end
@@ -211,7 +197,6 @@ $debug = options[:debug]
 
 if options[:daemon] then
   if options[:foreground] then
-    zmb.run
     warning "Exiting"
   else
     notice "Forking into the background (pid: #{zmb.run_fork})"
