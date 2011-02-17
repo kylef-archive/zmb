@@ -149,6 +149,8 @@ if not options[:settings] then
   notice "No settings file specified, will use #{options[:settings]}"
 end
 
+$debug = options[:debug]
+
 zmb = Zmb.new(options[:settings])
 
 if options[:wizard] then
@@ -226,8 +228,6 @@ if options[:irb]
 
   IRB.start_session(binding)
 end
-
-$debug = options[:debug]
 
 if options[:daemon] then
   if options[:foreground] then
