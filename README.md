@@ -1,28 +1,38 @@
-## A modular ruby-based IRC bot with a powerful but simple plugin interface
+A modular ruby-based IRC bot with a powerful but simple plugin interface
+========================================================================
 
-### Install
+Install
+-------
+
 	gem install zmb
 
-### Uninstall
+Uninstall
+---------
+
 	gem uninstall zmb
 	rm -rf ~/.zmb # If you used the default settings location
 
-### Creating a bot
+Creating a bot
+--------------
 
 This command will use the default settings location of ~/.zmb, you can pass `-s <PATH>` to change this.
 
 	zmb --wizard
 
-### Launching the bot
+Launching the bot
+-----------------
+
 	zmb --daemon
 
-### Using the bot in command shell mode
+Using the bot in command shell mode
+-----------------------------------
 
 You can run zmb in a shell mode to test plugins without even connecting to any irc servers. It will create a shell where you can enter commands.
 
 	zmb --shell
 
-### Included plugins
+Included plugins
+----------------
 
 - IRC - Connect to a IRC server
 - Quote
@@ -43,12 +53,15 @@ You can run zmb in a shell mode to test plugins without even connecting to any i
 - Weather - Get the weather for a town/city
 - Bank - Points system
 
-#### Other features
+Other features
+--------------
 
 - Piping commands together
 
     .help | pastie
 
-### Support
+Support
+-------
 
-You can find support at #zmb @ irc.sector5d.org
+You can find support at [#zmb on irc.sector5d.org](ircs://irc.sector5d.org:6697/#zmb)
+
